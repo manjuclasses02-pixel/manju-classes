@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Receipt — Manju Classes</title>
+<style>
+  :root{ --navy:#0b1f3a; --cream:#f6f3ea; --ink:#1c2430; --muted:#6b7280; --ok:#0f9d58; --line:#e6e2d6; }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; background:var(--cream); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px 14px;
+  }
+  .receipt-card{
+    background:#fff; max-width:420px; width:100%; border-radius:14px;
+    box-shadow:0 8px 30px rgba(11,31,58,0.12); padding:26px 24px; border:1px solid var(--line);
+  }
+  .head{ text-align:center; margin-bottom:16px; }
+  .head .name{ font-family:Georgia,serif; font-size:19px; font-weight:700; color:var(--navy); }
+  .head .addr{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .head .paid-tag{
+    display:inline-block; margin-top:10px; background:#eafaf1; color:var(--ok);
+    font-size:12px; font-weight:700; padding:4px 12px; border-radius:20px;
+  }
+  .row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+  .row:last-child{ border-bottom:none; }
+  .row .k{ color:var(--muted); }
+  .row .v{ font-weight:600; text-align:right; }
+  .total-row .v{ color:var(--ok); font-size:17px; }
+  .foot{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:16px; }
+  .actions{ margin-top:18px; display:flex; gap:10px; }
+  .btn{
+    flex:1; padding:11px; border-radius:8px; border:none; font-size:14px; font-weight:600;
+    cursor:pointer; text-align:center;
+  }
+  .btn-primary{ background:var(--navy); color:#fff; }
+  .btn-secondary{ background:#f1f1ef; color:var(--ink); }
+  .error-box{ text-align:center; color:var(--muted); font-size:14px; padding:20px; }
+  @media print{
+    body{ background:#fff; padding:0; }
+    .receipt-card{ box-shadow:none; border:none; }
+    .actions{ display:none; }
+  }
+</style>
+</head>
+<body>
+  <div class="receipt-card" id="receiptCard">
+    <div class="error-box">Loading receipt...</div>
+  </div>
+
+<script>
+function decodeReceipt(){
+  try{
+    const hash = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('d');
+    if(!encoded) return null;
+    const json = decodeURIComponent(escape(atob(decodeURIComponent(encoded))));
+    return JSON.parse(json);
+  }catch(err){
+    console.error('Receipt decode error:', err);
+    return null;
+  }
+}
+
+function render(){
+  const card = document.getElementById('receiptCard');
+  const r = decodeReceipt();
+  if(!r){
+    card.innerHTML = `<div class="error-box">⚠️ This receipt link is invalid or corrupted. Please try again with the correct link.</div>`;
+    return;
+  }
+  card.innerHTML = `
+    <div class="head">
+      <div class="name">${r.inst || 'Manju Classes'}</div>
+      <div class="addr">${r.branchName || ''}${r.addr ? ' — ' + r.addr : ''}</div>
+      <div class="paid-tag">✅ Payment Received</div>
+    </div>
+    <div class="row"><span class="k">Receipt No.</span><span class="v">${r.receiptNo || '-'}</span></div>
+    <div class="row"><span class="k">Date</span><span class="v">${r.date || '-'}</span></div>
+    <div class="row"><span class="k">Student</span><span class="v">${r.student || '-'} (${r.studentId || '-'})</span></div>
+    <div class="row"><span class="k">Fee Month</span><span class="v">${r.month || '-'}</span></div>
+    <div class="row"><span class="k">Amount</span><span class="v">₹${r.amount ?? 0}</span></div>
+    <div class="row"><span class="k">Discount</span><span class="v">₹${r.discount ?? 0}</span></div>
+    <div class="row"><span class="k">Fine</span><span class="v">₹${r.fine ?? 0}</span></div>
+    <div class="row total-row"><span class="k">Total Paid</span><span class="v">₹${r.total ?? 0}</span></div>
+    <div class="row"><span class="k">Payment Method</span><span class="v">${r.method || '-'}</span></div>
+    <div class="row"><span class="k">Collected By</span><span class="v">${r.collectedBy || '-'}</span></div>
+    <div class="foot">Thank you for choosing ${r.inst || 'Manju Classes'}.<br>This is a digitally generated receipt.</div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+  `;
+}
+render();
+</script>
+</body>
+</html>

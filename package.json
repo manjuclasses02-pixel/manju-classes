@@ -1,0 +1,9 @@
+{
+  "name": "manju-classes-erp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Manju Classes ERP — static PWA + Netlify Function for push notifications",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

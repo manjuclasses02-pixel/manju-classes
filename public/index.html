@@ -1,0 +1,2930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0b1f3a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Manju Classes — ERP</title>
+<style>
+  :root{
+    --navy:#0b1f3a;
+    --navy-2:#122a4d;
+    --crimson:#b3122b;
+    --gold:#c9a227;
+    --gold-soft:#e8d17a;
+    --paper:#f6f3ea;
+    --ink:#1c2430;
+    --muted:#6b7280;
+    --line:#d9d2bd;
+    --ok:#1e7d4f;
+    --radius:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI', 'Noto Sans Devanagari', system-ui, sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Georgia', 'Noto Serif Devanagari', serif;
+    letter-spacing:.2px;
+  }
+
+  /* ===== LOGIN SCREEN ===== */
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(201,162,39,0.10), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(179,18,43,0.10), transparent 45%),
+      var(--navy);
+    padding:20px;
+  }
+  .login-card{
+    width:100%;
+    max-width:400px;
+    background:var(--paper);
+    border-radius:16px;
+    padding:32px 28px;
+    position:relative;
+    box-shadow:0 30px 60px rgba(0,0,0,0.35);
+    border:1px solid var(--gold-soft);
+  }
+  .login-card::before{
+    content:"";
+    position:absolute;
+    inset:8px;
+    border:1px dashed rgba(201,162,39,0.5);
+    border-radius:10px;
+    pointer-events:none;
+  }
+  .brand-seal{
+    width:64px;height:64px;
+    margin:0 auto 14px;
+    border-radius:50%;
+    background:linear-gradient(145deg, var(--gold), #a5811d);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--navy);
+    font-weight:800;
+    font-size:22px;
+    font-family:'Georgia', serif;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25), inset 0 0 0 3px var(--paper);
+  }
+  .login-card h1{
+    text-align:center;
+    font-size:23px;
+    font-weight:800;
+    line-height:1.25;
+    color:var(--navy);
+    margin-bottom:2px;
+  }
+  .login-sub{
+    text-align:center;
+    color:var(--muted);
+    font-size:12.5px;
+    margin-bottom:22px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+  }
+  .book-viewport{
+    position:relative;
+    perspective:1400px;
+    height:255px;
+    margin-bottom:14px;
+  }
+  .book-inner{
+    position:absolute;
+    inset:0;
+    transform-style:preserve-3d;
+    transition:transform .55s cubic-bezier(.4,.15,.2,1);
+  }
+  .book-inner.flip-rotate{ transform:rotateY(-180deg); }
+  .book-inner.flip-instant{ transition:none !important; }
+  .book-leaf{
+    position:absolute; inset:0;
+    backface-visibility:hidden;
+    display:flex; flex-direction:column; justify-content:center;
+  }
+  .book-leaf.back{ transform:rotateY(180deg); }
+  .book-branch-tag{
+    text-align:center; font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--gold); font-weight:700; margin-bottom:2px;
+  }
+  .book-branch-head h2{
+    text-align:center; font-size:19px; color:var(--navy); margin:0 0 2px;
+    font-family:'Georgia',serif;
+  }
+  .book-branch-addr{ text-align:center; font-size:11.5px; color:var(--muted); margin-bottom:16px; }
+  .role-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .role-tile{
+    border:1px solid var(--line); background:#fff; border-radius:10px;
+    padding:14px 8px; text-align:center; cursor:pointer; font-size:12px; color:var(--ink);
+    transition:.15s; display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .role-tile span{ font-weight:600; }
+  .role-tile:hover{ border-color:var(--gold); }
+  .role-tile.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .role-tile.active span{ color:var(--gold-soft); }
+  .book-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .book-nav-btn{
+    background:none; border:none; color:var(--navy); font-weight:600; font-size:13px;
+    cursor:pointer; padding:4px 6px;
+  }
+  .book-nav-btn:disabled{ visibility:hidden; }
+  .book-dots{ display:flex; gap:6px; }
+  .book-dots .dot{ width:6px; height:6px; border-radius:50%; background:var(--line); }
+  .book-dots .dot.active{ background:var(--gold); }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:11.5px;
+    color:var(--muted);
+    margin-bottom:5px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+  }
+  .field input{
+    width:100%;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:15px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .field input:focus{
+    outline:2px solid var(--gold);
+    outline-offset:1px;
+    border-color:var(--gold);
+  }
+  .btn-primary{
+    width:100%;
+    padding:13px;
+    background:var(--crimson);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:6px;
+    letter-spacing:.3px;
+  }
+  .btn-primary:active{transform:scale(0.98);}
+  .login-footer{
+    text-align:center;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:16px;
+  }
+
+  /* ===== APP SHELL ===== */
+  #app-screen{display:none; min-height:100vh;}
+  .topbar{
+    background:var(--navy);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 16px;
+    position:sticky;
+    top:0;
+    z-index:30;
+    box-shadow:0 2px 10px rgba(0,0,0,0.2);
+  }
+  .topbar-left{display:flex; align-items:center; gap:10px;}
+  .hamburger{
+    width:34px;height:34px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    border-radius:6px;
+  }
+  .hamburger:active{background:rgba(255,255,255,0.1);}
+  .hamburger span{display:block; width:18px; height:2px; background:#fff; position:relative;}
+  .hamburger span::before,.hamburger span::after{
+    content:"";position:absolute; width:18px; height:2px; background:#fff; left:0;
+  }
+  .hamburger span::before{top:-6px;}
+  .hamburger span::after{top:6px;}
+  .topbar-title{font-size:15px; font-weight:600; font-family:'Georgia',serif;}
+  .topbar-title small{display:block; font-size:10px; font-weight:400; color:var(--gold-soft); letter-spacing:.5px;}
+  .branch-switch{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(201,162,39,0.5);
+    color:var(--gold-soft);
+    padding:7px 10px;
+    border-radius:20px;
+    font-size:12px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .branch-switch select{
+    background:transparent;
+    border:none;
+    color:var(--gold-soft);
+    font-size:12px;
+    font-weight:600;
+  }
+  .branch-switch select option{color:#000;}
+
+  /* Sidebar */
+  .layout{display:flex;}
+  #sidebar{
+    width:250px;
+    background:var(--navy-2);
+    color:#e8e4d6;
+    min-height:calc(100vh - 58px);
+    padding:16px 10px;
+    position:fixed;
+    top:58px; left:0; bottom:0;
+    overflow-y:auto;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    z-index:25;
+  }
+  #sidebar.open{transform:translateX(0);}
+  .nav-section-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--gold-soft);
+    padding:14px 12px 6px;
+    opacity:.75;
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:11px 12px;
+    border-radius:8px;
+    font-size:13.5px;
+    cursor:pointer;
+    color:#dcd8c9;
+    margin-bottom:2px;
+  }
+  .nav-item:active{background:rgba(255,255,255,0.06);}
+  .nav-item.active{
+    background:var(--gold);
+    color:var(--navy);
+    font-weight:700;
+  }
+  .nav-icon{width:18px; text-align:center; font-size:14px;}
+  #overlay{
+    display:none;
+    position:fixed; inset:0; top:58px;
+    background:rgba(0,0,0,0.45);
+    z-index:20;
+  }
+  #overlay.show{display:block;}
+
+  main{
+    flex:1;
+    padding:16px;
+    margin-left:0;
+  }
+
+  /* ===== DASHBOARD ===== */
+  .page-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .page-header h2{color:var(--navy); font-size:19px;}
+  .page-header .date-tag{font-size:11px; color:var(--muted);}
+
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-bottom:20px;
+  }
+  .stat-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 12px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card::after{
+    content:"";
+    position:absolute;
+    top:0; right:0;
+    width:0; height:0;
+    border-style:solid;
+    border-width:0 26px 26px 0;
+    border-color:transparent var(--gold-soft) transparent transparent;
+    opacity:.55;
+  }
+  .stat-card .label{
+    font-size:10.5px;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    margin-bottom:6px;
+  }
+  .stat-card .value{
+    font-size:24px;
+    font-weight:700;
+    color:var(--navy);
+    font-family:'Georgia',serif;
+  }
+  .stat-card .sub{font-size:11px; color:var(--ok); margin-top:3px;}
+  .stat-card.crimson .value{color:var(--crimson);}
+  .stat-card.crimson .sub{color:var(--crimson);}
+
+  .section-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .section-card h3{
+    font-size:14px;
+    color:var(--navy);
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-card h3::before{
+    content:"";
+    width:4px; height:16px;
+    background:var(--gold);
+    border-radius:2px;
+    display:inline-block;
+  }
+  .activity-row{
+    display:flex;
+    justify-content:space-between;
+    padding:9px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:12.5px;
+  }
+  .activity-row:last-child{border-bottom:none;}
+  .activity-row .who{color:var(--navy); font-weight:600;}
+  .activity-row .when{color:var(--muted); font-size:11px;}
+
+  .placeholder-note{
+    background:#fff8e6;
+    border:1px solid var(--gold-soft);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:12px;
+    color:#6b5510;
+    margin-bottom:16px;
+  }
+
+  @media(min-width:900px){
+    #sidebar{transform:translateX(0);}
+    #overlay{display:none !important;}
+    .hamburger{display:none;}
+    main{margin-left:250px;}
+    .stat-grid{grid-template-columns:repeat(4,1fr);}
+  }
+
+  /* ===== TOOLBAR / SEARCH / FILTER ===== */
+  .toolbar{
+    display:flex;
+    gap:8px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .toolbar input[type="text"], .toolbar select{
+    padding:9px 12px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-size:13px;
+    background:#fff;
+    color:var(--ink);
+  }
+  .toolbar input[type="text"]{flex:1; min-width:140px;}
+  .btn-add{
+    background:var(--navy);
+    color:var(--gold-soft);
+    border:none;
+    padding:9px 16px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-add:active{transform:scale(0.97);}
+
+  /* ===== CARD LIST (mobile) ===== */
+  .list-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:13px 14px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    cursor:pointer;
+  }
+  .list-card:active{background:#faf8f2;}
+  .list-avatar{
+    width:40px; height:40px;
+    border-radius:50%;
+    background:var(--navy);
+    color:var(--gold-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700;
+    font-size:14px;
+    flex-shrink:0;
+    font-family:'Georgia',serif;
+  }
+  .list-main{flex:1; min-width:0;}
+  .list-main .name{font-size:14px; font-weight:600; color:var(--navy);}
+  .list-main .meta{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .list-badges{display:flex; gap:5px; flex-wrap:wrap; margin-top:4px;}
+  .badge{
+    font-size:10px;
+    padding:2px 8px;
+    border-radius:20px;
+    font-weight:600;
+    letter-spacing:.2px;
+  }
+  .badge.b1{background:#e7edf7; color:var(--navy);}
+  .badge.b2{background:#fbe9ec; color:var(--crimson);}
+  .badge.active{background:#e3f4ea; color:var(--ok);}
+  .badge.new{background:#fff4d6; color:#8a6d00;}
+  .badge.contacted{background:#e7edf7; color:var(--navy);}
+  .badge.followup{background:#fbe9ec; color:var(--crimson);}
+  .badge.admitted{background:#e3f4ea; color:var(--ok);}
+  .list-side{text-align:right; flex-shrink:0;}
+  .list-side .amt{font-size:13px; font-weight:700; color:var(--navy);}
+  .list-side .amt.due{color:var(--crimson);}
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  /* ===== MODAL ===== */
+  #modalOverlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(11,31,58,0.55);
+    z-index:50;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  #modalOverlay.show{display:flex;}
+  .modal-box{
+    background:var(--paper);
+    width:100%;
+    max-width:460px;
+    max-height:88vh;
+    overflow-y:auto;
+    border-radius:16px 16px 0 0;
+    padding:20px;
+    animation:slideUp .2s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+  @media(min-width:600px){
+    #modalOverlay{align-items:center;}
+    .modal-box{border-radius:14px;}
+  }
+  .modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  .modal-header h3{color:var(--navy); font-size:16px;}
+  .modal-close{
+    width:28px; height:28px;
+    border-radius:50%;
+    background:#eee;
+    border:none;
+    font-size:14px;
+    cursor:pointer;
+    color:var(--muted);
+  }
+  .detail-row{
+    display:flex;
+    justify-content:space-between;
+    padding:9px 0;
+    border-bottom:1px dashed var(--line);
+    font-size:13px;
+  }
+  .detail-row:last-child{border-bottom:none;}
+  .detail-row .k{color:var(--muted);}
+  .detail-row .v{color:var(--ink); font-weight:600; text-align:right;}
+  .compare-row{display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:8px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px; align-items:center;}
+  .compare-row:last-child{border-bottom:none;}
+  .compare-row .k{color:var(--muted);}
+  .compare-row .v{color:var(--ink); font-weight:600; text-align:right;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .form-grid .field.full{grid-column:1/-1;}
+  .modal-actions{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap;}
+  .modal-actions > *{flex:1 1 100px;}
+  .btn-secondary{
+    flex:1;
+    padding:11px;
+    background:#eee;
+    color:var(--ink);
+    border:none;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .modal-actions .btn-primary{flex:1; margin-top:0;}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN — BOOK-FLIP ACCESS PORTAL ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="book-viewport">
+      <div class="book-inner" id="bookInner">
+        <div class="book-leaf front" id="bookFront"></div>
+        <div class="book-leaf back" id="bookBack"></div>
+      </div>
+    </div>
+
+    <div class="book-nav">
+      <button class="book-nav-btn" id="bookPrevBtn" onclick="flipBook(-1)">◀ Back</button>
+      <div class="book-dots">
+        <span class="dot" data-i="0"></span><span class="dot" data-i="1"></span><span class="dot" data-i="2"></span><span class="dot" data-i="3"></span>
+      </div>
+      <button class="book-nav-btn" id="bookNextBtn" onclick="flipBook(1)">Next ▶</button>
+    </div>
+
+    <div id="loginFormArea" style="display:none;">
+      <div class="field">
+        <label>Login Email / User ID</label>
+        <input type="text" id="loginId" placeholder="e.g. owner@manjuclasses.in">
+      </div>
+      <div class="field">
+        <label>Password / PIN</label>
+        <input type="password" id="loginPass" placeholder="••••••">
+      </div>
+      <button class="btn-primary" onclick="doLogin()">Login</button>
+    </div>
+    <div class="login-footer">Secure login · Branch data loads automatically</div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app-screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="hamburger" onclick="toggleSidebar()"><span></span></div>
+      <div class="topbar-title">Manju Classes<small id="roleLabel">Admin Panel</small></div>
+    </div>
+    <div class="branch-switch">
+      🏢
+      <select id="branchSelect" onchange="onBranchChange()">
+        <option value="all">All Branches</option>
+        <option value="b1">Branch 1 — Khagaul</option>
+        <option value="b2">Branch 2 — Ramjanki Mandir</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div id="overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" data-page="dashboard"><span class="nav-icon">🏠</span> Dashboard</div>
+      <div class="nav-item" data-page="myProfile"><span class="nav-icon">🙍</span> My Profile</div>
+
+      <div class="nav-section-label">Academics</div>
+      <div class="nav-item" data-page="students"><span class="nav-icon">🎓</span> Students</div>
+      <div class="nav-item" data-page="enquiry"><span class="nav-icon">📝</span> Admissions & Enquiry</div>
+      <div class="nav-item" data-page="teachers"><span class="nav-icon">👨‍🏫</span> Teachers</div>
+      <div class="nav-item" data-page="batches"><span class="nav-icon">📚</span> Classes & Batches</div>
+      <div class="nav-item" data-page="timetable"><span class="nav-icon">📅</span> Timetable</div>
+      <div class="nav-item" data-page="attendance"><span class="nav-icon">✅</span> Attendance</div>
+      <div class="nav-item" data-page="homework"><span class="nav-icon">📖</span> Homework</div>
+      <div class="nav-item" data-page="material"><span class="nav-icon">📂</span> Study Material</div>
+      <div class="nav-item" data-page="tests"><span class="nav-icon">📝</span> Tests & Results</div>
+
+      <div class="nav-section-label">Finance</div>
+      <div class="nav-item" data-page="fees"><span class="nav-icon">💰</span> Fees & Payments</div>
+      <div class="nav-item" data-page="expenses"><span class="nav-icon">💸</span> Expenses</div>
+      <div class="nav-item" data-page="salary"><span class="nav-icon">💵</span> Salaries</div>
+
+      <div class="nav-section-label">System</div>
+      <div class="nav-item" data-page="branchAnalytics"><span class="nav-icon">🏆</span> Branch Analytics</div>
+      <div class="nav-item" data-page="reports"><span class="nav-icon">📈</span> Reports</div>
+      <div class="nav-item" data-page="notifications"><span class="nav-icon">📢</span> Notifications</div>
+      <div class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span> Settings</div>
+      <div class="nav-item" onclick="doLogout()"><span class="nav-icon">🚪</span> Logout</div>
+    </div>
+
+    <main id="mainContent">
+      <!-- injected by JS -->
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODAL ============ -->
+<div id="modalOverlay" onclick="if(event.target===this) closeModal()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<!-- ============ FIREBASE SDK (compat build — works with plain script tags, no bundler needed) ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js"></script>
+
+<!-- ============ FIREBASE CONFIG (fill this in, keep as a separate file in real deploy) ============ -->
+<script>
+  // 👉 Firebase Console → Project Settings → General → Your apps → SDK setup → paste config here.
+  // Jab tak yeh khaali/placeholder hai, app DEMO_MODE mein chalega (local mock data, koi backend nahi).
+  const firebaseConfig = {
+    apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
+  authDomain: "manju-classes.firebaseapp.com",
+  projectId: "manju-classes",
+  storageBucket: "manju-classes.firebasestorage.app",
+  messagingSenderId: "731543724576",
+  appId: "1:731543724576:web:8eb00a315d2c6e2b0d9245"
+  };
+
+  // 👉 Firebase Console → Project Settings → Cloud Messaging → Web configuration →
+  // "Generate key pair" — yeh VAPID key push notifications on karne ke liye chahiye.
+  const FCM_VAPID_KEY = "YOUR_VAPID_KEY";
+</script>
+
+<script>
+// ===================== CONFIG (Phase 7 will wire real Settings control) =====================
+let CONFIG = {
+  instituteName: "Manju Classes",
+  instituteAddress: "Khagaul, Patna, Bihar",
+  institutePhone: "+91-00000-00000",
+  branches: {
+    b1: { name: "Branch 1", address: "Jamaluddin Chak, Khagaul, Patna" },
+    b2: { name: "Branch 2", address: "Near Ramjanki Mandir, Khagaul, Patna" }
+  },
+  // 👉 Configurable WhatsApp number (Settings → Notification Settings will edit this in Phase 7).
+  // Format: country code + number, no + or spaces. e.g. "919835012345"
+  whatsappNumber: "910000000000",
+  paymentMethods: { "Cash":true, "UPI":true, "Bank Transfer":true, "Card":true, "Other":true },
+  lateFee: 50,
+  receiptPrefix: "RCPT"
+};
+
+function enabledPaymentMethods(){
+  return Object.keys(CONFIG.paymentMethods).filter(m => CONFIG.paymentMethods[m]);
+}
+
+// Reflects live CONFIG values into already-rendered chrome (topbar, branch dropdown).
+function applyConfigToUI(){
+  document.querySelectorAll('.topbar-title').forEach(el => {
+    el.childNodes[0].textContent = CONFIG.instituteName;
+  });
+  const sel = document.getElementById('branchSelect');
+  if(sel){
+    const cur = sel.value;
+    sel.innerHTML = `
+      <option value="all">All Branches</option>
+      <option value="b1">${CONFIG.branches.b1.name} — ${CONFIG.branches.b1.address.split(',')[0]}</option>
+      <option value="b2">${CONFIG.branches.b2.name} — ${CONFIG.branches.b2.address.split(',')[0]}</option>
+    `;
+    sel.value = cur;
+  }
+}
+
+// Opens WhatsApp with a pre-filled message. If `phone` is given (student/parent number),
+// messages that specific contact; otherwise falls back to the institute's WhatsApp number.
+function openWhatsApp(phone, message){
+  const digits = (phone && phone.replace(/\D/g,'').length >= 10) ? phone.replace(/\D/g,'') : CONFIG.whatsappNumber;
+  window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank');
+}
+
+// Builds a self-contained, unique, shareable link for a payment receipt.
+// The receipt data is encoded directly inside the URL (no login/Firestore read
+// needed to view it), so it opens instantly for the student and stays free —
+// no separate backend or database read required to render it.
+function buildReceiptLink(p){
+  const branch = CONFIG.branches[p.branch];
+  const payload = {
+    inst: CONFIG.instituteName, addr: branch.address, branchName: branch.name,
+    receiptNo: p.receiptNo, date: p.date, student: p.studentName, studentId: p.studentId,
+    month: p.feeMonth, amount: p.amount, discount: p.discount, fine: p.fine, total: p.total,
+    method: p.method, collectedBy: p.collectedBy
+  };
+  const json = JSON.stringify(payload);
+  const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+  const url = new URL('receipt.html', window.location.href);
+  url.hash = 'd=' + encoded;
+  return url.href;
+}
+
+let FIREBASE_ENABLED = false;
+let db = null, auth = null;
+
+function initFirebase(){
+  try{
+    if(!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY"){
+      FIREBASE_ENABLED = false;
+      console.log("Firebase config is still a placeholder — running in DEMO_MODE.");
+      return;
+    }
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    FIREBASE_ENABLED = true;
+    console.log("Firebase connected — LIVE MODE.");
+  }catch(err){
+    console.error("Firebase init fail:", err);
+    FIREBASE_ENABLED = false;
+  }
+}
+initFirebase();
+
+const DEMO_MODE = !FIREBASE_ENABLED;
+
+// ---- Thin persistence layer ----
+// Demo mode: sirf local arrays update hote hain.
+// Live mode: Firestore mein bhi likha/padha jaata hai, local array cache ki tarah use hota hai.
+async function persist(collectionName, docId, data){
+  if(!FIREBASE_ENABLED) return;
+  try{ await db.collection(collectionName).doc(docId).set(data, { merge:true }); }
+  catch(err){ console.error("persist error:", collectionName, err); }
+}
+async function loadCollection(collectionName){
+  if(!FIREBASE_ENABLED) return null;
+  try{
+    const snap = await db.collection(collectionName).get();
+    return snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  }catch(err){ console.error("load error:", collectionName, err); return null; }
+}
+async function hydrateFromFirestore(){
+  if(!FIREBASE_ENABLED) return;
+  const [s,t,e,b,a,h,m,tt,pay,exp,sal,tst,res,notif,log] = await Promise.all([
+    loadCollection('students'), loadCollection('teachers'), loadCollection('enquiries'),
+    loadCollection('batches'), loadCollection('attendance'), loadCollection('homework'),
+    loadCollection('material'), loadCollection('timetable'),
+    loadCollection('payments'), loadCollection('expenses'), loadCollection('salaries'),
+    loadCollection('tests'), loadCollection('results'),
+    loadCollection('notifications'), loadCollection('activityLog')
+  ]);
+  if(s && s.length) STUDENTS = s;
+  if(t && t.length) TEACHERS = t;
+  if(e && e.length) ENQUIRIES = e;
+  if(b && b.length) BATCHES = b;
+  if(a) ATTENDANCE = a;
+  if(h) HOMEWORK = h;
+  if(m) MATERIAL = m;
+  if(tt && tt.length) TIMETABLE = tt;
+  if(pay) PAYMENTS = pay;
+  if(exp) EXPENSES = exp;
+  if(sal) SALARIES = sal;
+  if(tst && tst.length) TESTS = tst;
+  if(res) RESULTS = res;
+  if(notif && notif.length) NOTIFICATIONS = notif;
+  if(log && log.length) ACTIVITY = log.sort((a,b)=> (b.id||'').localeCompare(a.id||''));
+  try{
+    const settingsDoc = await db.collection('settings').doc('global').get();
+    if(settingsDoc.exists){ Object.assign(CONFIG, settingsDoc.data()); applyConfigToUI(); }
+  }catch(err){ console.error('settings load error', err); }
+  // Student profile photos — sabhi zaroori photos ek hi baar, login ke waqt load ho jaati hain
+  // (ek chhota coaching institute Firestore ki 50,000 reads/day free limit kabhi cross nahi karega,
+  // isliye har baar detail kholne par alag se fetch karne ki zaroorat nahi — seedha yahin load kar lo).
+  try{
+    if(currentRole === 'student'){
+      if(currentStudentId){
+        const doc = await db.collection('studentPhotos').doc(currentStudentId).get();
+        if(doc.exists){
+          const rec = STUDENTS.find(x=>x.id===currentStudentId);
+          if(rec) rec.photo = doc.data().photo;
+        }
+      }
+    } else if(currentRole === 'admin' || currentRole === 'teacher'){
+      const photoQuery = currentUserBranch === 'all'
+        ? db.collection('studentPhotos')
+        : db.collection('studentPhotos').where('branch', '==', currentUserBranch);
+      const snap = await photoQuery.get();
+      snap.forEach(doc => {
+        const rec = STUDENTS.find(x => x.id === doc.id);
+        if(rec) rec.photo = doc.data().photo;
+      });
+    }
+  }catch(err){ console.error('Photo hydrate error:', err); }
+}
+
+// ===================== DEMO DATA =====================
+const DEMO_DATA = {
+  all:  { students: 342, b1: 198, b2: 144, attendanceToday: "91%", teachers: 14, activeBatches: 22, todayClasses: 18, todayCollection: 18500, pendingFees: 62400, monthRevenue: 412000, monthExpense: 176500 },
+  b1:   { students: 198, b1: 198, b2: 0,   attendanceToday: "93%", teachers: 8,  activeBatches: 12, todayClasses: 10, todayCollection: 11200, pendingFees: 34800, monthRevenue: 241000, monthExpense: 98500 },
+  b2:   { students: 144, b1: 0,   b2: 144, attendanceToday: "88%", teachers: 6,  activeBatches: 10, todayClasses: 8,  todayCollection: 7300,  pendingFees: 27600, monthRevenue: 171000, monthExpense: 78000 }
+};
+
+let ACTIVITY = [
+  { who: "Admin", what: "Added new student — Rohit Kumar (Class 10)", when: "10 min ago", branch:"b1" },
+  { who: "Teacher: S. Verma", what: "Marked attendance — Batch 9A", when: "42 min ago", branch:"b1" },
+  { who: "Payment", what: "₹1,200 received from Priya Singh (Branch 1)", when: "1 hr ago", branch:"b1" },
+  { who: "Admin", what: "Updated fee structure — Class 8", when: "3 hr ago", branch:"all" },
+  { who: "Teacher: A. Kumar", what: "Uploaded homework — Science, Class 7", when: "5 hr ago", branch:"b1" }
+];
+function logActivity(who, what, branch){
+  const rec = { who, what, when:"Just now", branch: branch||'all' };
+  ACTIVITY.unshift(rec);
+  if(ACTIVITY.length > 100) ACTIVITY.pop();
+  persist('activityLog', 'log_'+Date.now()+'_'+Math.floor(Math.random()*1000), rec);
+}
+
+// ===================== PHASE 2 DEMO DATA =====================
+let STUDENTS = [
+  { id:"MC-1042", name:"Rohit Kumar", father:"Manoj Kumar", cls:"10", branch:"b1", batch:"10A Morning", phone:"9835012xxx", status:"active", feeDue:0 },
+  { id:"MC-1043", name:"Priya Singh", father:"Ramesh Singh", cls:"9", branch:"b1", batch:"9A Evening", phone:"9871234xxx", status:"active", feeDue:600 },
+  { id:"MC-1044", name:"Aman Raj", father:"Suresh Raj", cls:"8", branch:"b2", batch:"8B Morning", phone:"8877665xxx", status:"active", feeDue:0 },
+  { id:"MC-1045", name:"Sneha Kumari", father:"Ajay Kumar", cls:"10", branch:"b2", batch:"10B Evening", phone:"9955223xxx", status:"inactive", feeDue:1200 },
+  { id:"MC-1046", name:"Ravi Bharti", father:"Dinesh Bharti", cls:"7", branch:"b1", batch:"7A Morning", phone:"7856234xxx", status:"active", feeDue:0 },
+  { id:"MC-1047", name:"Kajal Kumari", father:"Vinod Kumar", cls:"9", branch:"b2", batch:"9B Evening", phone:"8123456xxx", status:"active", feeDue:600 }
+];
+
+let TEACHERS = [
+  { id:"T-01", name:"Suman Verma", subj:"Maths", branch:"b1", phone:"9801234xxx", batches:4, joined:"2019", status:"active" },
+  { id:"T-02", name:"Anil Kumar", subj:"Science", branch:"b1", phone:"9812345xxx", batches:3, joined:"2020", status:"active" },
+  { id:"T-03", name:"Neha Sharma", subj:"English", branch:"b2", phone:"9823456xxx", batches:3, joined:"2021", status:"active" },
+  { id:"T-04", name:"Rakesh Pandey", subj:"Social Science", branch:"b2", phone:"9834567xxx", batches:2, joined:"2018", status:"active" },
+  { id:"T-05", name:"Vikash Jha", subj:"Hindi", branch:"b1", phone:"9845678xxx", batches:2, joined:"2022", status:"active" }
+];
+
+let ENQUIRIES = [
+  { id:"E-201", name:"Aditya Raj", parent:"Manish Raj", phone:"9898989xxx", cls:"9", branch:"b1", source:"Walk-in", date:"27 Aug", status:"new" },
+  { id:"E-202", name:"Ritu Kumari", parent:"Sanjay Singh", phone:"9787878xxx", cls:"10", branch:"b2", source:"Referral", date:"26 Aug", status:"followup" },
+  { id:"E-203", name:"Suraj Kumar", parent:"Birendra Kumar", phone:"9676767xxx", cls:"8", branch:"b1", source:"Facebook", date:"25 Aug", status:"contacted" },
+  { id:"E-204", name:"Poonam Kumari", parent:"Rajesh Prasad", phone:"9565656xxx", cls:"7", branch:"b1", source:"Walk-in", date:"22 Aug", status:"admitted" },
+  { id:"E-205", name:"Deepak Kumar", parent:"Vijay Kumar", phone:"9454545xxx", cls:"10", branch:"b2", source:"Poster", date:"20 Aug", status:"admitted" }
+];
+
+let BATCHES = [
+  { id:"BAT-01", name:"10A Morning", cls:"10", subj:"All Subjects", branch:"b1", teacher:"Suman Verma", time:"7:00–9:00 AM", days:"Mon-Sat", strength:32, max:40 },
+  { id:"BAT-02", name:"9A Evening", cls:"9", subj:"All Subjects", branch:"b1", teacher:"Anil Kumar", time:"4:00–6:00 PM", days:"Mon-Sat", strength:28, max:35 },
+  { id:"BAT-03", name:"8B Morning", cls:"8", subj:"All Subjects", branch:"b2", teacher:"Neha Sharma", time:"7:00–9:00 AM", days:"Mon-Sat", strength:25, max:35 },
+  { id:"BAT-04", name:"10B Evening", cls:"10", subj:"All Subjects", branch:"b2", teacher:"Rakesh Pandey", time:"4:00–6:00 PM", days:"Mon-Sat", strength:30, max:40 }
+];
+
+// ===================== PHASE 3 DEMO DATA =====================
+// each record: { id: `${date}_${studentId}`, date, studentId, batchId, branch, status }
+let ATTENDANCE = [];
+
+let HOMEWORK = [
+  { id:"HW-01", title:"Quadratic Equations — Exercise 4.2", cls:"10", batch:"10A Morning", subj:"Maths", branch:"b1", due:"02 Sep", desc:"Solve Q1–Q10 and bring your notebook." },
+  { id:"HW-02", title:"Photosynthesis Diagram Labelling", cls:"7", batch:"7A Morning", subj:"Science", branch:"b1", due:"01 Sep", desc:"Draw the diagram in your notebook and label it." },
+  { id:"HW-03", title:"Unseen Passage Practice", cls:"9", batch:"9B Evening", subj:"English", branch:"b2", due:"03 Sep", desc:"Worksheet page 12–13." }
+];
+
+let MATERIAL = [
+  { id:"M-01", title:"Trigonometry Formula Sheet", cls:"10", subj:"Maths", branch:"b1", type:"PDF", chapter:"Trigonometry" },
+  { id:"M-02", title:"Transport in Animals and Plants — Notes", cls:"7", subj:"Science", branch:"b1", type:"Notes", chapter:"Transportation" },
+  { id:"M-03", title:"Grammar Basics — Tenses", cls:"9", subj:"English", branch:"b2", type:"Notes", chapter:"Grammar" },
+  { id:"M-04", title:"Periodic Table Chart", cls:"10", subj:"Science", branch:"b2", type:"Image", chapter:"Elements" }
+];
+
+let TIMETABLE = [
+  { id:"TT-01", day:"Mon", time:"7:00–8:00 AM", branch:"b1", cls:"10", batch:"10A Morning", subj:"Maths", teacher:"Suman Verma" },
+  { id:"TT-02", day:"Mon", time:"8:00–9:00 AM", branch:"b1", cls:"10", batch:"10A Morning", subj:"Science", teacher:"Anil Kumar" },
+  { id:"TT-03", day:"Mon", time:"4:00–5:00 PM", branch:"b1", cls:"9", batch:"9A Evening", subj:"Maths", teacher:"Suman Verma" },
+  { id:"TT-04", day:"Tue", time:"7:00–8:00 AM", branch:"b2", cls:"8", batch:"8B Morning", subj:"Science", teacher:"Neha Sharma" },
+  { id:"TT-05", day:"Wed", time:"4:00–5:00 PM", branch:"b2", cls:"10", batch:"10B Evening", subj:"Social Science", teacher:"Rakesh Pandey" }
+];
+const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat"];
+
+// ===================== PHASE 4 DEMO DATA (Finance — strictly branch-separated) =====================
+let PAYMENTS = [
+  { id:"PAY-1001", studentId:"MC-1042", studentName:"Rohit Kumar", branch:"b1", amount:600, discount:0, fine:0, total:600, date:"28 Aug", method:"UPI", feeMonth:"August", receiptNo:"RCPT-1001", collectedBy:"Admin", remarks:"" },
+  { id:"PAY-1002", studentId:"MC-1044", studentName:"Aman Raj", branch:"b2", amount:500, discount:50, fine:0, total:450, date:"27 Aug", method:"Cash", feeMonth:"August", receiptNo:"RCPT-1002", collectedBy:"Admin", remarks:"Scholarship discount" },
+  { id:"PAY-1003", studentId:"MC-1046", studentName:"Ravi Bharti", branch:"b1", amount:500, discount:0, fine:0, total:500, date:"25 Aug", method:"Cash", feeMonth:"August", receiptNo:"RCPT-1003", collectedBy:"Admin", remarks:"" }
+];
+
+let EXPENSES = [
+  { id:"EXP-01", branch:"b1", date:"20 Aug", category:"Rent", amount:15000, description:"Monthly rent", method:"Bank Transfer", addedBy:"Admin" },
+  { id:"EXP-02", branch:"b1", date:"22 Aug", category:"Electricity", amount:3200, description:"August bill", method:"UPI", addedBy:"Admin" },
+  { id:"EXP-03", branch:"b2", date:"21 Aug", category:"Stationery", amount:1800, description:"Notebooks, markers", method:"Cash", addedBy:"Admin" }
+];
+
+let SALARIES = [
+  { id:"SAL-01", employee:"Suman Verma", branch:"b1", month:"August", salary:22000, bonus:0, deduction:0, net:22000, paymentDate:"31 Aug", method:"Bank Transfer", status:"paid" },
+  { id:"SAL-02", employee:"Neha Sharma", branch:"b2", month:"August", salary:20000, bonus:1000, deduction:0, net:21000, paymentDate:"—", method:"—", status:"pending" },
+  { id:"SAL-03", employee:"Anil Kumar", branch:"b1", month:"August", salary:19000, bonus:0, deduction:500, net:18500, paymentDate:"—", method:"—", status:"pending" }
+];
+
+// ===================== PHASE 5 DEMO DATA (Tests, Results, Performance) =====================
+let TESTS = [
+  { id:"TST-01", name:"Unit Test 1", subject:"Maths", cls:"10", batch:"10A Morning", branch:"b1", maxMarks:100, date:"20 Aug" },
+  { id:"TST-02", name:"Unit Test 1", subject:"Science", cls:"7", batch:"7A Morning", branch:"b1", maxMarks:50, date:"18 Aug" },
+  { id:"TST-03", name:"Mid Term", subject:"English", cls:"9", batch:"9B Evening", branch:"b2", maxMarks:80, date:"15 Aug" }
+];
+
+let RESULTS = [
+  { id:"RES-01", testId:"TST-01", studentId:"MC-1042", studentName:"Rohit Kumar", marks:88, branch:"b1" },
+  { id:"RES-02", testId:"TST-02", studentId:"MC-1046", studentName:"Ravi Bharti", marks:42, branch:"b1" },
+  { id:"RES-03", testId:"TST-03", studentId:"MC-1047", studentName:"Kajal Kumari", marks:65, branch:"b2" }
+];
+
+function gradeFor(pct){
+  if(pct>=90) return 'A+';
+  if(pct>=80) return 'A';
+  if(pct>=70) return 'B';
+  if(pct>=60) return 'C';
+  if(pct>=50) return 'D';
+  return 'F';
+}
+
+// ===================== PHASE 6 DEMO DATA (Notifications) =====================
+let NOTIFICATIONS = [
+  { id:"NOT-01", title:"Diwali Holiday", message:"Manju Classes will remain closed for Diwali holidays from 20–24 Oct.", type:"Holiday Notice", audience:"All Students", branch:"all", date:"25 Aug" },
+  { id:"NOT-02", title:"Unit Test Schedule", message:"Class 10's Unit Test 2 will begin from 5 Sep.", type:"Exam Notice", audience:"Branch 1", branch:"b1", date:"24 Aug" }
+];
+const AUDIENCE_OPTIONS = ["All Students","Branch 1","Branch 2","Teachers","Parents"];
+const NOTICE_TYPES = ["General Notice","Fee Reminder","Attendance Alert","Exam Notice","Holiday Notice","Homework Notice"];
+
+let currentRole = "admin";
+let currentBranch = "all";
+let currentPage = "dashboard";
+let demoSelectedBranch = "all";
+
+// ===================== LOGIN — BOOK-FLIP ACCESS PORTAL =====================
+function bookPageCover(){
+  return `
+    <div class="brand-seal">MC</div>
+    <h1 style="margin-top:8px;">Welcome to<br>Manju Classes</h1>
+    <div class="login-sub">Coaching Management System</div>
+    <p style="text-align:center;font-size:12.5px;color:var(--ink);line-height:1.65;margin:16px 10px 0;">
+      Dono branches ka fee, attendance, homework, tests aur notifications — sab ek hi jagah se.
+    </p>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px;">Tap <strong style="color:var(--navy);">"Next ▶"</strong> to view your branch</p>
+  `;
+}
+function bookPageBranch(branchId){
+  const b = CONFIG.branches[branchId];
+  return `
+    <div class="book-branch-head">
+      <div class="book-branch-tag">${b.name}</div>
+      <h2>${CONFIG.instituteName}</h2>
+      <div class="book-branch-addr">${b.address}</div>
+    </div>
+    <div class="role-grid">
+      <div class="role-tile" onclick="selectLoginRole(this,'admin','${branchId}')">👤<span>Admin</span></div>
+      <div class="role-tile" onclick="selectLoginRole(this,'teacher','${branchId}')">🧑‍🏫<span>Teacher</span></div>
+      <div class="role-tile" onclick="selectLoginRole(this,'student','${branchId}')">🎓<span>Student</span></div>
+      <div class="role-tile" onclick="selectLoginRole(this,'parent','${branchId}')">👪<span>Parent</span></div>
+    </div>
+  `;
+}
+function bookPageSuperAdmin(){
+  return `
+    <div class="book-branch-head">
+      <div class="book-branch-tag">Head Office</div>
+      <h2>Super Admin</h2>
+      <div class="book-branch-addr">Dono branches ka access — analytics, settings, sabkuch</div>
+    </div>
+    <div class="role-grid" style="grid-template-columns:1fr;">
+      <div class="role-tile" onclick="selectLoginRole(this,'admin','all')">👑<span>Super Admin Login</span></div>
+    </div>
+  `;
+}
+const BOOK_PAGES = [bookPageCover, () => bookPageBranch('b1'), () => bookPageBranch('b2'), bookPageSuperAdmin];
+let bookIndex = 0;
+let bookFlipping = false;
+
+function selectLoginRole(el, role, branch){
+  currentRole = role;
+  demoSelectedBranch = branch;
+  document.querySelectorAll('.role-tile').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const formArea = document.getElementById('loginFormArea');
+  formArea.style.display = 'block';
+  document.getElementById('loginId').focus();
+}
+
+function updateBookNav(){
+  document.getElementById('bookPrevBtn').disabled = (bookIndex === 0);
+  document.getElementById('bookNextBtn').disabled = (bookIndex === BOOK_PAGES.length - 1);
+  document.querySelectorAll('.book-dots .dot').forEach((d,i) => d.classList.toggle('active', i === bookIndex));
+}
+
+function flipBook(direction){
+  if(bookFlipping) return;
+  const nextIndex = bookIndex + direction;
+  if(nextIndex < 0 || nextIndex > BOOK_PAGES.length - 1) return;
+  bookFlipping = true;
+  // Role/branch change hote hi login form reset kar dein
+  document.getElementById('loginFormArea').style.display = 'none';
+  document.getElementById('loginId').value = '';
+  document.getElementById('loginPass').value = '';
+
+  const inner = document.getElementById('bookInner');
+  const front = document.getElementById('bookFront');
+  const back = document.getElementById('bookBack');
+  back.innerHTML = BOOK_PAGES[nextIndex]();
+  inner.classList.add('flip-rotate');
+
+  const onEnd = () => {
+    inner.removeEventListener('transitionend', onEnd);
+    front.innerHTML = BOOK_PAGES[nextIndex]();
+    inner.classList.add('flip-instant');
+    inner.classList.remove('flip-rotate');
+    void inner.offsetWidth; // force reflow so the instant reset applies before transitions re-enable
+    inner.classList.remove('flip-instant');
+    bookIndex = nextIndex;
+    bookFlipping = false;
+    updateBookNav();
+  };
+  inner.addEventListener('transitionend', onEnd);
+}
+
+document.getElementById('bookFront').innerHTML = BOOK_PAGES[0]();
+updateBookNav();
+
+let currentUserBranch = 'all'; // for teacher/student/parent, restricts branch scope
+let currentUserId = null; // Firebase Auth uid — needed to save this device's push-notification token
+let currentStudentId = null; // set only when currentRole === 'student' — links to their own students/{id} record
+
+async function doLogin(){
+  const idVal = document.getElementById('loginId').value.trim();
+  const passVal = document.getElementById('loginPass').value;
+
+  if(FIREBASE_ENABLED){
+    // LIVE MODE — Firebase Email/Password auth. "Phone/User ID" field ko email ki tarah use karein
+    // (e.g. teacher ka email teacher1@manjuclasses.in), Admin Firebase Console/Auth mein account banayega.
+    if(!idVal || !passVal){ alert('Please enter both User ID and Password'); return; }
+    try{
+      const cred = await auth.signInWithEmailAndPassword(idVal, passVal);
+      const userDoc = await db.collection('users').doc(cred.user.uid).get();
+      if(!userDoc.exists){
+        alert('Login successful, but no user profile (role/branch) was found in Firestore. Please ask the admin to add an entry in the "users" collection.');
+        await auth.signOut();
+        return;
+      }
+      const u = userDoc.data();
+      currentRole = u.role || 'student';
+      currentUserBranch = u.branch || 'all';
+      currentUserId = cred.user.uid;
+      currentStudentId = u.studentId || null;
+      await hydrateFromFirestore();
+      enterApp();
+    }catch(err){
+      alert('Login failed: ' + err.message);
+    }
+  } else {
+    // DEMO MODE — role tab select karke seedha andar
+    currentUserBranch = demoSelectedBranch;
+    if(currentRole === 'student'){
+      const demoStudent = STUDENTS.find(s => demoSelectedBranch==='all' || s.branch===demoSelectedBranch);
+      currentStudentId = demoStudent ? demoStudent.id : null;
+    }
+    STUDENTS.forEach(s => { if(DEMO_PHOTOS[s.id]) s.photo = DEMO_PHOTOS[s.id]; });
+    enterApp();
+  }
+}
+
+function enterApp(){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  const labels = { admin:"Admin Panel", teacher:"Teacher Panel", student:"Student Panel", parent:"Parent Panel" };
+  let roleLabelText = labels[currentRole];
+  if(currentRole === 'admin'){
+    roleLabelText = currentUserBranch === 'all' ? 'Super Admin' : CONFIG.branches[currentUserBranch].name + ' Admin';
+  }
+  document.getElementById('roleLabel').textContent = roleLabelText + (FIREBASE_ENABLED ? '' : ' · Preview');
+
+  // Branch-restricted login (any role, including Branch Admin) locked to their own branch —
+  // sirf Super Admin (branch: 'all') dono branch ke beech switch kar sakta hai.
+  const branchSelect = document.getElementById('branchSelect');
+  if(currentUserBranch !== 'all'){
+    currentBranch = currentUserBranch;
+    branchSelect.value = currentUserBranch;
+    branchSelect.disabled = true;
+  } else {
+    branchSelect.disabled = false;
+  }
+  applyRoleVisibility();
+  renderPage('dashboard');
+  if(FIREBASE_ENABLED) setTimeout(requestNotificationPermission, 1200);
+}
+
+// ===================== PUSH NOTIFICATIONS (Firebase Cloud Messaging) =====================
+// Har logged-in device (owner/teacher/student/parent) apna FCM token yahan generate
+// karke Firestore ("fcmTokens" collection) mein save karta hai. Baad mein jab owner
+// koi Notice bheje, Netlify Function isi collection se tokens uthakar push bhejta hai.
+async function requestNotificationPermission(){
+  if(!FIREBASE_ENABLED) return;
+  if(!('Notification' in window) || !('serviceWorker' in navigator)){
+    console.log('This browser does not support push notifications.');
+    return;
+  }
+  if(FCM_VAPID_KEY === "YOUR_VAPID_KEY"){
+    console.log('FCM_VAPID_KEY has not been set yet — see SETUP.md Phase 2.');
+    return;
+  }
+  try{
+    const permission = await Notification.requestPermission();
+    if(permission !== 'granted'){ console.log('Notification permission denied by user.'); return; }
+    const swReg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+    const messaging = firebase.messaging();
+    const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: swReg });
+    if(token && currentUserId){
+      await db.collection('fcmTokens').doc(currentUserId).set({
+        token, role: currentRole, branch: currentUserBranch, updatedAt: new Date().toISOString()
+      }, { merge: true });
+      console.log('Push notifications enabled aur token save ho gaya.');
+    }
+  }catch(err){
+    console.error('Push notification setup error:', err);
+  }
+}
+
+function doLogout(){
+  if(FIREBASE_ENABLED && auth.currentUser) auth.signOut();
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('branchSelect').disabled = false;
+}
+
+// Role-based sidebar visibility (financial items hidden from teacher/student/parent per spec)
+function applyRoleVisibility(){
+  const financeOnly = ['fees','expenses','salary','settings','reports'];
+  const adminOnly = ['teachers','enquiry','notifications'];
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    const page = item.dataset.page;
+    let show = true;
+    if(currentRole !== 'admin' && financeOnly.includes(page) && page !== 'fees') show = false;
+    if(currentRole === 'student' && ['teachers','enquiry','batches'].includes(page)) show = false;
+    if(currentRole === 'parent' && ['teachers','enquiry','batches'].includes(page)) show = false;
+    if(currentRole !== 'admin' && page === 'settings') show = false;
+    if(page === 'settings' && currentUserBranch !== 'all') show = false; // Settings = Super Admin only
+    if(page === 'branchAnalytics' && !(currentRole === 'admin' && currentUserBranch === 'all')) show = false; // Branch Analytics = Super Admin only
+    if(page === 'myProfile' && currentRole !== 'student') show = false; // My Profile = Student only
+    item.style.display = show ? 'flex' : 'none';
+  });
+}
+
+// ===================== SIDEBAR =====================
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    if(window.innerWidth < 900){ toggleSidebar(); }
+    currentPage = item.dataset.page;
+    renderPage(currentPage);
+  });
+});
+
+function onBranchChange(){
+  currentBranch = document.getElementById('branchSelect').value;
+  renderPage(currentPage);
+}
+
+// ===================== PAGE RENDER =====================
+function renderPage(page){
+  const routes = {
+    dashboard: renderDashboard,
+    students: renderStudents,
+    enquiry: renderEnquiry,
+    teachers: renderTeachers,
+    batches: renderBatches,
+    attendance: renderAttendance,
+    timetable: renderTimetable,
+    homework: renderHomework,
+    material: renderMaterial,
+    fees: renderFees,
+    expenses: renderExpenses,
+    salary: renderSalary,
+    tests: renderTests,
+    notifications: renderNotifications,
+    reports: renderReports,
+    settings: renderSettings,
+    branchAnalytics: renderBranchAnalytics,
+    myProfile: renderMyProfile
+  };
+  if(routes[page]){ routes[page](); return; }
+
+  const main = document.getElementById('mainContent');
+  const titles = {};
+  main.innerHTML = `
+    <div class="page-header"><h2>${titles[page] || page}</h2></div>
+    <div class="placeholder-note">📌 The "${titles[page]}" module will be built in a later phase, as planned.</div>
+    <div class="section-card"><h3>Coming in a later phase</h3><p style="font-size:13px;color:var(--muted)">This section will be fully functional in its respective phase.</p></div>
+  `;
+}
+
+function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function branchTag(b){ return b==='b1' ? '<span class="badge b1">Branch 1</span>' : '<span class="badge b2">Branch 2</span>'; }
+function inBranch(itemBranch){ return currentBranch==='all' || itemBranch===currentBranch; }
+
+// ---------- STUDENTS ----------
+function renderStudents(searchTerm){
+  const main = document.getElementById('mainContent');
+  searchTerm = (searchTerm||'').toLowerCase();
+  const rows = STUDENTS.filter(s => inBranch(s.branch) && (s.name.toLowerCase().includes(searchTerm) || s.id.toLowerCase().includes(searchTerm)));
+
+  main.innerHTML = `
+    <div class="page-header"><h2>Students</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar">
+      <input type="text" id="studentSearch" placeholder="🔍 Search name or ID..." value="${searchTerm}">
+      <button class="btn-add" onclick="openAddStudent()">+ Add Student</button>
+    </div>
+    <div id="studentList">${rows.length ? rows.map(s => `
+      <div class="list-card" onclick="viewStudent('${s.id}')">
+        <div class="list-avatar">${initials(s.name)}</div>
+        <div class="list-main">
+          <div class="name">${s.name}</div>
+          <div class="meta">${s.id} · Class ${s.cls} · ${s.batch}</div>
+          <div class="list-badges">${branchTag(s.branch)}<span class="badge ${s.status}">${s.status}</span></div>
+        </div>
+        <div class="list-side">
+          ${s.feeDue > 0 ? `<div class="amt due">₹${s.feeDue} due</div>` : `<div class="amt" style="color:var(--ok)">Paid</div>`}
+        </div>
+      </div>`).join('') : `<div class="empty-state">No students found. Try changing your search or add a new one.</div>`}
+    </div>
+  `;
+  document.getElementById('studentSearch').addEventListener('input', (e) => renderStudents(e.target.value));
+}
+function viewStudent(id){
+  const s = STUDENTS.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-header"><h3>${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="width:84px;height:84px;border-radius:50%;margin:0 auto;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:26px;color:var(--muted);">
+        ${s.photo ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;">` : '🙍'}
+      </div>
+    </div>
+    <div class="detail-row"><span class="k">Student ID</span><span class="v">${s.id}</span></div>
+    <div class="detail-row"><span class="k">Father's Name</span><span class="v">${s.father}</span></div>
+    <div class="detail-row"><span class="k">Class</span><span class="v">${s.cls}</span></div>
+    <div class="detail-row"><span class="k">Batch</span><span class="v">${s.batch}</span></div>
+    <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[s.branch].name}</span></div>
+    <div class="detail-row"><span class="k">Phone</span><span class="v">${s.phone}</span></div>
+    <div class="detail-row"><span class="k">Status</span><span class="v">${s.status}</span></div>
+    <div class="detail-row"><span class="k">Fee Due</span><span class="v" style="color:${s.feeDue>0?'var(--crimson)':'var(--ok)'}">${s.feeDue>0 ? '₹'+s.feeDue : 'Paid up'}</span></div>
+    ${s.loginEmail ? `<div class="detail-row"><span class="k">Student Login Email</span><span class="v">${s.loginEmail}</span></div>` : ''}
+    ${s.parentLoginEmail ? `<div class="detail-row"><span class="k">Parent Login Email</span><span class="v">${s.parentLoginEmail}</span></div>` : ''}
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="viewPerformance('${s.id}')">📊 Performance</button>
+      <button class="btn-primary" onclick="openGenerateLogin('${s.id}')">🔑 ${s.loginEmail ? 'Reset' : 'Generate'} Student Login</button>
+      <button class="btn-primary" onclick="openGenerateParentLogin('${s.id}')">🔑 ${s.parentLoginEmail ? 'Reset' : 'Generate'} Parent Login</button>
+      <button class="btn-primary" onclick="sendFeeReminder('${s.id}')">📱 Fee Reminder</button>
+    </div>
+  `);
+}
+function sendFeeReminder(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const msg = s.feeDue > 0
+    ? `Hello, the Manju Classes fee of ₹${s.feeDue} for ${s.name} (${s.id}) is pending. Please pay at the earliest. — Manju Classes`
+    : `Hello, the Manju Classes fee for ${s.name} (${s.id}) is fully paid. Thank you. — Manju Classes`;
+  openWhatsApp(s.phone, msg);
+}
+
+// ---------- STUDENT LOGIN CREDENTIALS ----------
+// Uses a secondary Firebase app instance so creating a new Auth user
+// does NOT sign the admin out of their own session.
+async function createLoginCredential(role, name, branch, email, password, extra={}){
+  if(!FIREBASE_ENABLED){
+    alert('Please connect Firebase first (see SETUP.md). Real login credentials cannot be generated in Preview Mode.');
+    return null;
+  }
+  try{
+    let secondaryApp;
+    try{ secondaryApp = firebase.app('Secondary'); }
+    catch(e){ secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary'); }
+    const secAuth = secondaryApp.auth();
+    const cred = await secAuth.createUserWithEmailAndPassword(email, password);
+    const uid = cred.user.uid;
+    await db.collection('users').doc(uid).set({ name, role, branch, email, ...extra });
+    await secAuth.signOut();
+    return uid;
+  }catch(err){
+    alert('Failed to create login: ' + err.message);
+    return null;
+  }
+}
+function openGenerateLogin(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const defaultEmail = s.loginEmail || (s.id.toLowerCase().replace(/-/g,'') + '@manjuclasses.app');
+  const defaultPass = Math.random().toString(36).slice(-8);
+  openModal(`
+    <div class="modal-header"><h3>Generate Login — ${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Login Email</label><input type="text" id="gl_email" value="${defaultEmail}"></div>
+    <div class="field"><label>Password</label><input type="text" id="gl_pass" value="${defaultPass}"></div>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Once generated, share these credentials with the student/parent via WhatsApp or SMS. The password will never be shown again in this app, so note it down now.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitGenerateLogin('${studentId}')">Create Login</button>
+    </div>
+  `);
+}
+async function submitGenerateLogin(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const email = document.getElementById('gl_email').value.trim();
+  const password = document.getElementById('gl_pass').value.trim();
+  if(!email || password.length < 6){ alert('Please enter a valid email and a password of at least 6 characters'); return; }
+  const uid = await createLoginCredential('student', s.name, s.branch, email, password, { studentId: s.id });
+  if(uid){
+    s.loginEmail = email;
+    persist('students', s.id, { loginEmail: email });
+    logActivity('Admin', `Generated student login — ${s.name} (${s.id})`, s.branch);
+    closeModal();
+    alert(`✅ Login created!\n\nEmail: ${email}\nPassword: ${password}\n\nPlease give these details to the student — this password will not be shown here again.`);
+    renderStudents();
+  }
+}
+// ---------- PARENT LOGIN CREDENTIALS (same secondary-app trick, role: 'parent') ----------
+function openGenerateParentLogin(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const defaultEmail = s.parentLoginEmail || (s.id.toLowerCase().replace(/-/g,'') + '.parent@manjuclasses.app');
+  const defaultPass = Math.random().toString(36).slice(-8);
+  openModal(`
+    <div class="modal-header"><h3>Generate Parent Login — ${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Login Email</label><input type="text" id="pgl_email" value="${defaultEmail}"></div>
+    <div class="field"><label>Password</label><input type="text" id="pgl_pass" value="${defaultPass}"></div>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">This login lets the parent view their child's fees, attendance, homework, tests and notifications. Once generated, share the credentials with the parent via WhatsApp/SMS — the password won't be shown here again.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitGenerateParentLogin('${studentId}')">Create Login</button>
+    </div>
+  `);
+}
+async function submitGenerateParentLogin(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const email = document.getElementById('pgl_email').value.trim();
+  const password = document.getElementById('pgl_pass').value.trim();
+  if(!email || password.length < 6){ alert('Please enter a valid email and a password of at least 6 characters'); return; }
+  const uid = await createLoginCredential('parent', s.father + ' (Parent of ' + s.name + ')', s.branch, email, password);
+  if(uid){
+    s.parentLoginEmail = email;
+    persist('students', s.id, { parentLoginEmail: email });
+    logActivity('Admin', `Generated parent login — ${s.name} (${s.id})`, s.branch);
+    closeModal();
+    alert(`✅ Parent Login created!\n\nEmail: ${email}\nPassword: ${password}\n\nPlease give these details to the parent — this password will not be shown here again.`);
+    renderStudents();
+  }
+}
+function openAddStudent(){
+  openModal(`
+    <div class="modal-header"><h3>Add Student</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Full Name</label><input type="text" id="f_name" placeholder="Student name"></div>
+      <div class="field"><label>Father's Name</label><input type="text" id="f_father"></div>
+      <div class="field"><label>Class</label><input type="text" id="f_cls" placeholder="e.g. 9"></div>
+      <div class="field"><label>Branch</label>
+        <select id="f_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+      <div class="field"><label>Phone</label><input type="text" id="f_phone"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveStudent()">Save Student</button>
+    </div>
+  `);
+}
+function saveStudent(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name){ alert('Name is required'); return; }
+  const newId = 'MC-' + (1040 + STUDENTS.length + 10);
+  const rec = {
+    id:newId, name, father:document.getElementById('f_father').value||'-',
+    cls:document.getElementById('f_cls').value||'-', branch:document.getElementById('f_branch').value,
+    batch:'Unassigned', phone:document.getElementById('f_phone').value||'-', status:'active', feeDue:0
+  };
+  STUDENTS.unshift(rec);
+  persist('students', newId, rec);
+  logActivity('Admin', `Added new student — ${rec.name} (Class ${rec.cls})`, rec.branch);
+  closeModal();
+  renderStudents();
+}
+
+// ---------- ENQUIRY ----------
+function renderEnquiry(){
+  const main = document.getElementById('mainContent');
+  const rows = ENQUIRIES.filter(e => inBranch(e.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Admissions & Enquiry</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddEnquiry()">+ New Enquiry</button></div>
+    ${rows.map(e => `
+      <div class="list-card" onclick="viewEnquiry('${e.id}')">
+        <div class="list-avatar">${initials(e.name)}</div>
+        <div class="list-main">
+          <div class="name">${e.name}</div>
+          <div class="meta">Class ${e.cls} · ${e.source} · ${e.date}</div>
+          <div class="list-badges">${branchTag(e.branch)}<span class="badge ${e.status}">${e.status}</span></div>
+        </div>
+      </div>`).join('') || `<div class="empty-state">No enquiries found.</div>`}
+  `;
+}
+function viewEnquiry(id){
+  const e = ENQUIRIES.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-header"><h3>${e.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="detail-row"><span class="k">Parent</span><span class="v">${e.parent}</span></div>
+    <div class="detail-row"><span class="k">Phone</span><span class="v">${e.phone}</span></div>
+    <div class="detail-row"><span class="k">Class</span><span class="v">${e.cls}</span></div>
+    <div class="detail-row"><span class="k">Source</span><span class="v">${e.source}</span></div>
+    <div class="detail-row"><span class="k">Status</span><span class="v">${e.status}</span></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="markAdmitted('${e.id}')">✅ Mark Admitted</button>
+      <button class="btn-primary" onclick="sendAdmissionConfirmation('${e.id}')">📱 Confirm</button>
+    </div>
+  `);
+}
+function markAdmitted(id){
+  const e = ENQUIRIES.find(x=>x.id===id);
+  e.status = 'admitted';
+  persist('enquiries', id, { status:'admitted' });
+  logActivity('Admin', `Marked enquiry admitted — ${e.name} (Class ${e.cls})`, e.branch);
+  closeModal();
+  renderEnquiry();
+}
+function sendAdmissionConfirmation(id){
+  const e = ENQUIRIES.find(x=>x.id===id);
+  const msg = `Hello ${e.parent},\n${e.name}'s admission at Manju Classes (${CONFIG.branches[e.branch].name}) has been confirmed. Class ${e.cls}. Thank you!`;
+  openWhatsApp(e.phone, msg);
+}
+function openAddEnquiry(){
+  openModal(`
+    <div class="modal-header"><h3>New Enquiry</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Student Name</label><input type="text" id="e_name"></div>
+      <div class="field"><label>Parent Name</label><input type="text" id="e_parent"></div>
+      <div class="field"><label>Phone</label><input type="text" id="e_phone"></div>
+      <div class="field"><label>Class</label><input type="text" id="e_cls"></div>
+      <div class="field"><label>Branch</label>
+        <select id="e_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEnquiry()">Save Enquiry</button>
+    </div>
+  `);
+}
+function saveEnquiry(){
+  const name = document.getElementById('e_name').value.trim();
+  if(!name){ alert('Name is required'); return; }
+  const id = 'E-' + (200+ENQUIRIES.length+10);
+  const rec = {
+    id, name, parent:document.getElementById('e_parent').value||'-',
+    phone:document.getElementById('e_phone').value||'-', cls:document.getElementById('e_cls').value||'-',
+    branch:document.getElementById('e_branch').value, source:'Manual Entry',
+    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), status:'new'
+  };
+  ENQUIRIES.unshift(rec);
+  persist('enquiries', id, rec);
+  closeModal();
+  renderEnquiry();
+}
+
+// ---------- TEACHERS ----------
+function renderTeachers(){
+  const main = document.getElementById('mainContent');
+  const rows = TEACHERS.filter(t => inBranch(t.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Teachers</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddTeacher()">+ Add Teacher</button></div>
+    ${rows.map(t => `
+      <div class="list-card" onclick="viewTeacher('${t.id}')">
+        <div class="list-avatar">${initials(t.name)}</div>
+        <div class="list-main">
+          <div class="name">${t.name}</div>
+          <div class="meta">${t.subj} · ${t.batches} batches · Since ${t.joined}</div>
+          <div class="list-badges">${branchTag(t.branch)}<span class="badge active">${t.status}</span></div>
+        </div>
+      </div>`).join('') || `<div class="empty-state">No teachers in this branch.</div>`}
+  `;
+}
+function viewTeacher(id){
+  const t = TEACHERS.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-header"><h3>${t.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="detail-row"><span class="k">Subject</span><span class="v">${t.subj}</span></div>
+    <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[t.branch].name}</span></div>
+    <div class="detail-row"><span class="k">Phone</span><span class="v">${t.phone}</span></div>
+    <div class="detail-row"><span class="k">Assigned Batches</span><span class="v">${t.batches}</span></div>
+    <div class="detail-row"><span class="k">Joined</span><span class="v">${t.joined}</span></div>
+    ${t.loginEmail ? `<div class="detail-row"><span class="k">Login Email</span><span class="v">${t.loginEmail}</span></div>` : ''}
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="openGenerateTeacherLogin('${t.id}')">🔑 ${t.loginEmail ? 'Reset' : 'Generate'} Login</button>
+    </div>
+  `);
+}
+// ---------- TEACHER LOGIN CREDENTIALS (same secondary-app trick as students) ----------
+function openGenerateTeacherLogin(teacherId){
+  const t = TEACHERS.find(x=>x.id===teacherId);
+  const defaultEmail = t.loginEmail || (t.id.toLowerCase().replace(/-/g,'') + '@manjuclasses.app');
+  const defaultPass = Math.random().toString(36).slice(-8);
+  openModal(`
+    <div class="modal-header"><h3>Generate Login — ${t.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Login Email</label><input type="text" id="tgl_email" value="${defaultEmail}"></div>
+    <div class="field"><label>Password</label><input type="text" id="tgl_pass" value="${defaultPass}"></div>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Once generated, share these credentials with the teacher via WhatsApp or SMS. The password will never be shown again in this app, so note it down now.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitGenerateTeacherLogin('${teacherId}')">Create Login</button>
+    </div>
+  `);
+}
+async function submitGenerateTeacherLogin(teacherId){
+  const t = TEACHERS.find(x=>x.id===teacherId);
+  const email = document.getElementById('tgl_email').value.trim();
+  const password = document.getElementById('tgl_pass').value.trim();
+  if(!email || password.length < 6){ alert('Please enter a valid email and a password of at least 6 characters'); return; }
+  const uid = await createLoginCredential('teacher', t.name, t.branch, email, password);
+  if(uid){
+    t.loginEmail = email;
+    persist('teachers', t.id, { loginEmail: email });
+    logActivity('Admin', `Generated login credentials — ${t.name} (${t.id})`, t.branch);
+    closeModal();
+    alert(`✅ Login created!\n\nEmail: ${email}\nPassword: ${password}\n\nPlease give these details to the teacher — this password will not be shown here again.`);
+    renderTeachers();
+  }
+}
+function openAddTeacher(){
+  openModal(`
+    <div class="modal-header"><h3>Add Teacher</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Full Name</label><input type="text" id="t_name"></div>
+      <div class="field"><label>Subject</label><input type="text" id="t_subj"></div>
+      <div class="field"><label>Phone</label><input type="text" id="t_phone"></div>
+      <div class="field"><label>Branch</label>
+        <select id="t_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveTeacher()">Save Teacher</button>
+    </div>
+  `);
+}
+function saveTeacher(){
+  const name = document.getElementById('t_name').value.trim();
+  if(!name){ alert('Name is required'); return; }
+  const id = 'T-'+(10+TEACHERS.length);
+  const rec = {
+    id, name, subj:document.getElementById('t_subj').value||'-',
+    branch:document.getElementById('t_branch').value, phone:document.getElementById('t_phone').value||'-',
+    batches:0, joined:new Date().getFullYear().toString(), status:'active'
+  };
+  TEACHERS.unshift(rec);
+  persist('teachers', id, rec);
+  closeModal();
+  renderTeachers();
+}
+
+// ---------- BATCHES ----------
+function renderBatches(){
+  const main = document.getElementById('mainContent');
+  const rows = BATCHES.filter(b => inBranch(b.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Classes & Batches</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddBatch()">+ Add Batch</button></div>
+    ${rows.map(b => `
+      <div class="list-card" onclick="viewBatch('${b.id}')">
+        <div class="list-avatar">${b.cls}</div>
+        <div class="list-main">
+          <div class="name">${b.name}</div>
+          <div class="meta">${b.teacher} · ${b.time} · ${b.days}</div>
+          <div class="list-badges">${branchTag(b.branch)}</div>
+        </div>
+        <div class="list-side"><div class="amt">${b.strength}/${b.max}</div></div>
+      </div>`).join('') || `<div class="empty-state">No batches in this branch.</div>`}
+  `;
+}
+function viewBatch(id){
+  const b = BATCHES.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-header"><h3>${b.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="detail-row"><span class="k">Class / Subject</span><span class="v">${b.cls} · ${b.subj}</span></div>
+    <div class="detail-row"><span class="k">Teacher</span><span class="v">${b.teacher}</span></div>
+    <div class="detail-row"><span class="k">Timing</span><span class="v">${b.time}</span></div>
+    <div class="detail-row"><span class="k">Days</span><span class="v">${b.days}</span></div>
+    <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[b.branch].name}</span></div>
+    <div class="detail-row"><span class="k">Strength</span><span class="v">${b.strength} / ${b.max}</span></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
+  `);
+}
+function openAddBatch(){
+  openModal(`
+    <div class="modal-header"><h3>Add Batch</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Batch Name</label><input type="text" id="b_name" placeholder="e.g. 9A Morning"></div>
+      <div class="field"><label>Class</label><input type="text" id="b_cls"></div>
+      <div class="field"><label>Teacher</label><input type="text" id="b_teacher"></div>
+      <div class="field"><label>Timing</label><input type="text" id="b_time" placeholder="7:00–9:00 AM"></div>
+      <div class="field"><label>Branch</label>
+        <select id="b_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveBatch()">Save Batch</button>
+    </div>
+  `);
+}
+function saveBatch(){
+  const name = document.getElementById('b_name').value.trim();
+  if(!name){ alert('Batch name is required'); return; }
+  const id = 'BAT-'+(10+BATCHES.length);
+  const rec = {
+    id, name, cls:document.getElementById('b_cls').value||'-',
+    subj:'All Subjects', branch:document.getElementById('b_branch').value,
+    teacher:document.getElementById('b_teacher').value||'-', time:document.getElementById('b_time').value||'-',
+    days:'Mon-Sat', strength:0, max:40
+  };
+  BATCHES.unshift(rec);
+  persist('batches', id, rec);
+  closeModal();
+  renderBatches();
+}
+
+// ---------- ATTENDANCE ----------
+let attendanceSelectedBatch = null;
+let attendanceSelectedDate = new Date().toISOString().slice(0,10);
+
+function renderAttendance(){
+  const main = document.getElementById('mainContent');
+  const batches = BATCHES.filter(b => inBranch(b.branch));
+  if(!attendanceSelectedBatch && batches.length) attendanceSelectedBatch = batches[0].id;
+
+  main.innerHTML = `
+    <div class="page-header"><h2>Attendance</h2></div>
+    <div class="toolbar">
+      <select id="attBatchSelect" onchange="attendanceSelectedBatch=this.value; renderAttendance();">
+        ${batches.map(b => `<option value="${b.id}" ${b.id===attendanceSelectedBatch?'selected':''}>${b.name}</option>`).join('')}
+      </select>
+      <input type="text" id="attDate" type="date" value="${attendanceSelectedDate}" onchange="attendanceSelectedDate=this.value; renderAttendance();" style="padding:9px;border:1px solid var(--line);border-radius:8px;">
+    </div>
+    <div id="attList"></div>
+    <button class="btn-add" style="width:100%;margin-top:8px;" onclick="saveAttendance()">✅ Save Attendance</button>
+  `;
+  document.getElementById('attDate').type = 'date';
+
+  const batch = BATCHES.find(b=>b.id===attendanceSelectedBatch);
+  if(!batch){ document.getElementById('attList').innerHTML = `<div class="empty-state">No batches in this branch.</div>`; return; }
+  const students = STUDENTS.filter(s => s.batch === batch.name);
+  const list = document.getElementById('attList');
+  if(!students.length){ list.innerHTML = `<div class="empty-state">No students assigned to this batch.</div>`; return; }
+
+  list.innerHTML = students.map(s => {
+    const recId = attendanceSelectedDate + '_' + s.id;
+    const existing = ATTENDANCE.find(a => a.id === recId);
+    const status = existing ? existing.status : 'P';
+    return `
+    <div class="list-card" style="cursor:default;">
+      <div class="list-avatar">${initials(s.name)}</div>
+      <div class="list-main"><div class="name">${s.name}</div><div class="meta">${s.id}</div></div>
+      <div style="display:flex;gap:4px;">
+        ${['P','A','L'].map(st => `<button onclick="setAttStatus('${s.id}','${st}')" id="att_${s.id}_${st}"
+          style="width:32px;height:32px;border-radius:6px;border:1px solid var(--line);
+          background:${status===st ? (st==='P'?'var(--ok)':st==='A'?'var(--crimson)':'var(--gold)') : '#fff'};
+          color:${status===st ? '#fff' : 'var(--muted)'}; font-size:11px; font-weight:700; cursor:pointer;">${st}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // store working state in a temp map
+  window._attWorking = {};
+  students.forEach(s => {
+    const recId = attendanceSelectedDate + '_' + s.id;
+    const existing = ATTENDANCE.find(a => a.id === recId);
+    window._attWorking[s.id] = existing ? existing.status : 'P';
+  });
+}
+function setAttStatus(studentId, status){
+  window._attWorking[studentId] = status;
+  const s = STUDENTS.find(x=>x.id===studentId);
+  ['P','A','L'].forEach(st => {
+    const btn = document.getElementById(`att_${studentId}_${st}`);
+    if(!btn) return;
+    if(st===status){ btn.style.background = st==='P'?'var(--ok)':st==='A'?'var(--crimson)':'var(--gold)'; btn.style.color='#fff'; }
+    else { btn.style.background='#fff'; btn.style.color='var(--muted)'; }
+  });
+}
+function saveAttendance(){
+  const batch = BATCHES.find(b=>b.id===attendanceSelectedBatch);
+  const students = STUDENTS.filter(s => s.batch === batch.name);
+  const absentees = [];
+  students.forEach(s => {
+    const status = window._attWorking[s.id] || 'P';
+    if(status === 'A') absentees.push(s);
+    const recId = attendanceSelectedDate + '_' + s.id;
+    const rec = { id:recId, date:attendanceSelectedDate, studentId:s.id, batchId:batch.id, branch:batch.branch, status };
+    const idx = ATTENDANCE.findIndex(a=>a.id===recId);
+    if(idx>-1) ATTENDANCE[idx] = rec; else ATTENDANCE.push(rec);
+    persist('attendance', recId, rec);
+  });
+  logActivity(currentRole==='teacher' ? 'Teacher' : 'Admin', `Marked attendance — ${batch.name} (${attendanceSelectedDate})`, batch.branch);
+  if(absentees.length){
+    openModal(`
+      <div class="modal-header"><h3>Attendance Saved</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">${absentees.length} student(s) absent aaj. Parent ko WhatsApp alert bhejein:</p>
+      ${absentees.map(s => `
+        <div class="list-card" style="cursor:default;">
+          <div class="list-avatar">${initials(s.name)}</div>
+          <div class="list-main"><div class="name">${s.name}</div><div class="meta">${s.id}</div></div>
+          <button class="btn-add" onclick="sendAbsentAlert('${s.id}')">📱 Alert</button>
+        </div>`).join('')}
+      <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
+    `);
+  } else {
+    alert('Attendance saved: ' + attendanceSelectedDate + ' — ' + batch.name);
+  }
+}
+function sendAbsentAlert(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const msg = `Hello, ${s.name} (${s.id}) was absent at Manju Classes today. Please confirm. — Manju Classes`;
+  openWhatsApp(s.phone, msg);
+}
+
+// ---------- TIMETABLE ----------
+function renderTimetable(){
+  const main = document.getElementById('mainContent');
+  const rows = TIMETABLE.filter(t => inBranch(t.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Timetable</h2></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddSlot()">+ Add Slot</button></div>
+    ${WEEKDAYS.map(day => {
+      const dayRows = rows.filter(r=>r.day===day).sort((a,b)=>a.time.localeCompare(b.time));
+      if(!dayRows.length) return '';
+      return `
+      <div class="section-card">
+        <h3>${day}</h3>
+        ${dayRows.map(r => `
+          <div class="activity-row">
+            <span><span class="who">${r.time}</span> — ${r.subj} · ${r.batch} (${r.teacher})</span>
+            <span class="when">${branchTag(r.branch)}</span>
+          </div>`).join('')}
+      </div>`;
+    }).join('') || `<div class="empty-state">No timetable set for this branch.</div>`}
+  `;
+}
+function openAddSlot(){
+  openModal(`
+    <div class="modal-header"><h3>Add Timetable Slot</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Day</label>
+        <select id="tt_day" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${WEEKDAYS.map(d=>`<option value="${d}">${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Time</label><input type="text" id="tt_time" placeholder="7:00–8:00 AM"></div>
+      <div class="field full"><label>Batch</label><input type="text" id="tt_batch" placeholder="e.g. 10A Morning"></div>
+      <div class="field"><label>Subject</label><input type="text" id="tt_subj"></div>
+      <div class="field"><label>Teacher</label><input type="text" id="tt_teacher"></div>
+      <div class="field full"><label>Branch</label>
+        <select id="tt_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveSlot()">Save Slot</button>
+    </div>
+  `);
+}
+function saveSlot(){
+  const id = 'TT-'+(10+TIMETABLE.length);
+  const rec = {
+    id, day:document.getElementById('tt_day').value, time:document.getElementById('tt_time').value||'-',
+    branch:document.getElementById('tt_branch').value, cls:'-', batch:document.getElementById('tt_batch').value||'-',
+    subj:document.getElementById('tt_subj').value||'-', teacher:document.getElementById('tt_teacher').value||'-'
+  };
+  TIMETABLE.push(rec);
+  persist('timetable', id, rec);
+  closeModal();
+  renderTimetable();
+}
+
+// ---------- HOMEWORK ----------
+function renderHomework(){
+  const main = document.getElementById('mainContent');
+  const rows = HOMEWORK.filter(h => inBranch(h.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Homework</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddHomework()">+ Add Homework</button></div>
+    ${rows.map(h => `
+      <div class="section-card">
+        <h3>${h.title}</h3>
+        <div class="detail-row"><span class="k">Class / Batch</span><span class="v">${h.cls} · ${h.batch}</span></div>
+        <div class="detail-row"><span class="k">Subject</span><span class="v">${h.subj}</span></div>
+        <div class="detail-row"><span class="k">Due Date</span><span class="v" style="color:var(--crimson)">${h.due}</span></div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:8px;">${h.desc}</p>
+      </div>`).join('') || `<div class="empty-state">No homework found.</div>`}
+  `;
+}
+function openAddHomework(){
+  openModal(`
+    <div class="modal-header"><h3>Add Homework</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Title</label><input type="text" id="h_title"></div>
+      <div class="field"><label>Class</label><input type="text" id="h_cls"></div>
+      <div class="field"><label>Batch</label><input type="text" id="h_batch"></div>
+      <div class="field"><label>Subject</label><input type="text" id="h_subj"></div>
+      <div class="field"><label>Due Date</label><input type="text" id="h_due" placeholder="e.g. 05 Sep"></div>
+      <div class="field full"><label>Branch</label>
+        <select id="h_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+      <div class="field full"><label>Description</label><input type="text" id="h_desc"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveHomework()">Save Homework</button>
+    </div>
+  `);
+}
+function saveHomework(){
+  const title = document.getElementById('h_title').value.trim();
+  if(!title){ alert('Title is required'); return; }
+  const id = 'HW-'+(10+HOMEWORK.length);
+  const rec = {
+    id, title, cls:document.getElementById('h_cls').value||'-', batch:document.getElementById('h_batch').value||'-',
+    subj:document.getElementById('h_subj').value||'-', branch:document.getElementById('h_branch').value,
+    due:document.getElementById('h_due').value||'-', desc:document.getElementById('h_desc').value||''
+  };
+  HOMEWORK.unshift(rec);
+  persist('homework', id, rec);
+  closeModal();
+  renderHomework();
+}
+
+// ---------- STUDY MATERIAL ----------
+function renderMaterial(){
+  const main = document.getElementById('mainContent');
+  const rows = MATERIAL.filter(m => inBranch(m.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Study Material</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddMaterial()">+ Add Material</button></div>
+    ${rows.map(m => `
+      <div class="list-card" style="cursor:default;">
+        <div class="list-avatar">${m.type[0]}</div>
+        <div class="list-main">
+          <div class="name">${m.title}</div>
+          <div class="meta">Class ${m.cls} · ${m.subj} · ${m.chapter}</div>
+          <div class="list-badges">${branchTag(m.branch)}<span class="badge active">${m.type}</span></div>
+        </div>
+      </div>`).join('') || `<div class="empty-state">No study material found.</div>`}
+  `;
+}
+function openAddMaterial(){
+  openModal(`
+    <div class="modal-header"><h3>Add Study Material</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Title</label><input type="text" id="m_title"></div>
+      <div class="field"><label>Class</label><input type="text" id="m_cls"></div>
+      <div class="field"><label>Subject</label><input type="text" id="m_subj"></div>
+      <div class="field"><label>Chapter</label><input type="text" id="m_chapter"></div>
+      <div class="field"><label>Type</label>
+        <select id="m_type" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option>PDF</option><option>Notes</option><option>Image</option><option>Video Link</option>
+        </select>
+      </div>
+      <div class="field full"><label>Branch</label>
+        <select id="m_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveMaterial()">Save</button>
+    </div>
+  `);
+}
+function saveMaterial(){
+  const title = document.getElementById('m_title').value.trim();
+  if(!title){ alert('Title is required'); return; }
+  const id = 'M-'+(10+MATERIAL.length);
+  const rec = {
+    id, title, cls:document.getElementById('m_cls').value||'-', subj:document.getElementById('m_subj').value||'-',
+    chapter:document.getElementById('m_chapter').value||'-', type:document.getElementById('m_type').value,
+    branch:document.getElementById('m_branch').value
+  };
+  MATERIAL.unshift(rec);
+  persist('material', id, rec);
+  closeModal();
+  renderMaterial();
+}
+
+// ---------- FEES & PAYMENTS (branch-separated — B1 and B2 never mix) ----------
+function branchPayments(){ return PAYMENTS.filter(p => inBranch(p.branch)); }
+function renderFees(){
+  const main = document.getElementById('mainContent');
+  const rows = branchPayments().sort((a,b)=> b.id.localeCompare(a.id));
+  const today = rows.filter(p=>p.date === rows[0]?.date); // demo: treat latest date as "today"
+  const totalCollection = rows.reduce((s,p)=>s+p.total,0);
+  const pendingFees = STUDENTS.filter(s=>inBranch(s.branch)).reduce((s,st)=>s+st.feeDue,0);
+
+  main.innerHTML = `
+    <div class="page-header"><h2>Fees & Payments</h2><span class="date-tag">${currentBranch==='all' ? 'All Branches' : CONFIG.branches[currentBranch].name}</span></div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-card"><div class="label">Total Collection</div><div class="value">₹${totalCollection.toLocaleString('en-IN')}</div></div>
+      <div class="stat-card crimson"><div class="label">Pending Fees</div><div class="value">₹${pendingFees.toLocaleString('en-IN')}</div></div>
+      <div class="stat-card"><div class="label">Transactions</div><div class="value">${rows.length}</div></div>
+    </div>
+
+    <div class="toolbar"><button class="btn-add" onclick="openRecordPayment()">+ Record Payment</button></div>
+
+    ${rows.map(p => `
+      <div class="list-card" onclick="viewReceipt('${p.id}')">
+        <div class="list-avatar">${initials(p.studentName)}</div>
+        <div class="list-main">
+          <div class="name">${p.studentName}</div>
+          <div class="meta">${p.receiptNo} · ${p.feeMonth} · ${p.date} · ${p.method}</div>
+          <div class="list-badges">${branchTag(p.branch)}</div>
+        </div>
+        <div class="list-side"><div class="amt">₹${p.total}</div></div>
+      </div>`).join('') || `<div class="empty-state">No payment records in this branch.</div>`}
+  `;
+}
+function openRecordPayment(){
+  const students = STUDENTS.filter(s => currentBranch==='all' ? true : s.branch===currentBranch);
+  openModal(`
+    <div class="modal-header"><h3>Record Payment</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Student</label>
+        <select id="p_student" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${students.map(s=>`<option value="${s.id}">${s.name} (${s.id})</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Amount (₹)</label><input type="number" id="p_amount" placeholder="600"></div>
+      <div class="field"><label>Fee Month</label><input type="text" id="p_month" placeholder="August"></div>
+      <div class="field"><label>Discount (₹)</label><input type="number" id="p_discount" value="0"></div>
+      <div class="field"><label>Fine (₹)</label><input type="number" id="p_fine" value="0"></div>
+      <div class="field"><label>Payment Method</label>
+        <select id="p_method" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${enabledPaymentMethods().map(m=>`<option>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full"><label>Remarks</label><input type="text" id="p_remarks" placeholder="Optional"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePayment()">Save & Generate Receipt</button>
+    </div>
+  `);
+}
+function savePayment(){
+  const studentId = document.getElementById('p_student').value;
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const amount = parseFloat(document.getElementById('p_amount').value) || 0;
+  const discount = parseFloat(document.getElementById('p_discount').value) || 0;
+  const fine = parseFloat(document.getElementById('p_fine').value) || 0;
+  if(amount <= 0){ alert('Please enter a valid amount'); return; }
+  const total = amount - discount + fine;
+  const id = 'PAY-' + (1000 + PAYMENTS.length + 10);
+  const receiptNo = CONFIG.receiptPrefix + '-' + (1000 + PAYMENTS.length + 10);
+  const rec = {
+    id, studentId, studentName:s.name, branch:s.branch, amount, discount, fine, total,
+    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+    method: document.getElementById('p_method').value, feeMonth: document.getElementById('p_month').value||'-',
+    receiptNo, collectedBy:'Admin', remarks: document.getElementById('p_remarks').value||''
+  };
+  PAYMENTS.unshift(rec);
+  persist('payments', id, rec);
+  s.feeDue = Math.max(0, s.feeDue - total);
+  persist('students', s.id, { feeDue: s.feeDue });
+  logActivity('Payment', `₹${total} received from ${s.name} (${CONFIG.branches[s.branch].name})`, s.branch);
+  closeModal();
+  viewReceipt(id);
+}
+function viewReceipt(paymentId){
+  const p = PAYMENTS.find(x=>x.id===paymentId);
+  const branch = CONFIG.branches[p.branch];
+  const link = buildReceiptLink(p);
+  openModal(`
+    <div class="modal-header"><h3>Payment Receipt</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-family:'Georgia',serif;font-size:16px;color:var(--navy);font-weight:700;">MANJU CLASSES</div>
+      <div style="font-size:11px;color:var(--muted);">${branch.name} — ${branch.address}</div>
+    </div>
+    <div class="detail-row"><span class="k">Receipt No.</span><span class="v">${p.receiptNo}</span></div>
+    <div class="detail-row"><span class="k">Date</span><span class="v">${p.date}</span></div>
+    <div class="detail-row"><span class="k">Student</span><span class="v">${p.studentName} (${p.studentId})</span></div>
+    <div class="detail-row"><span class="k">Fee Month</span><span class="v">${p.feeMonth}</span></div>
+    <div class="detail-row"><span class="k">Amount</span><span class="v">₹${p.amount}</span></div>
+    <div class="detail-row"><span class="k">Discount</span><span class="v">₹${p.discount}</span></div>
+    <div class="detail-row"><span class="k">Fine</span><span class="v">₹${p.fine}</span></div>
+    <div class="detail-row"><span class="k">Total Paid</span><span class="v" style="color:var(--ok);font-size:15px;">₹${p.total}</span></div>
+    <div class="detail-row"><span class="k">Payment Method</span><span class="v">${p.method}</span></div>
+    <div class="detail-row"><span class="k">Collected By</span><span class="v">${p.collectedBy}</span></div>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:14px;">Thank you for choosing Manju Classes.</div>
+    <div class="field" style="margin-top:12px;">
+      <label>Shareable Receipt Link</label>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="receiptLinkBox" readonly value="${link}" style="flex:1;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:11.5px;color:var(--muted);">
+        <button class="btn-secondary" style="white-space:nowrap;padding:0 12px;" onclick="copyReceiptLink()">📋 Copy</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="printReceipt('${p.id}')">🖨️ Print</button>
+      <button class="btn-primary" onclick="shareReceiptWhatsApp('${p.id}')">📱 Send WhatsApp</button>
+    </div>
+  `);
+}
+function copyReceiptLink(){
+  const box = document.getElementById('receiptLinkBox');
+  box.select();
+  navigator.clipboard.writeText(box.value).then(()=>{
+    alert('✅ Link copied!');
+  }).catch(()=>{ document.execCommand('copy'); alert('✅ Link copied!'); });
+}
+function shareReceiptWhatsApp(paymentId){
+  const p = PAYMENTS.find(x=>x.id===paymentId);
+  const s = STUDENTS.find(x=>x.id===p.studentId);
+  const link = buildReceiptLink(p);
+  const msg = `🧾 *${CONFIG.instituteName} — Payment Receipt*\n\n`
+    + `Hello *${p.studentName}*,\n`
+    + `Your fee payment has been received successfully. ✅\n\n`
+    + `📄 Receipt No: *${p.receiptNo}*\n`
+    + `📅 Date: ${p.date}\n`
+    + `🗓️ Month: ${p.feeMonth}\n`
+    + `💰 Amount Paid: *₹${p.total}*\n`
+    + `💳 Method: ${p.method}\n\n`
+    + `👉 View / download your digital receipt:\n${link}\n\n`
+    + `Thank you — *${CONFIG.instituteName}*`;
+  openWhatsApp(s ? s.phone : null, msg);
+}
+function printReceipt(paymentId){
+  const p = PAYMENTS.find(x=>x.id===paymentId);
+  const branch = CONFIG.branches[p.branch];
+  const w = window.open('', '_blank');
+  w.document.write(`
+    <html><head><title>${p.receiptNo}</title><style>
+      body{font-family:Georgia,serif;padding:30px;color:#1c2430;}
+      h2{color:#0b1f3a;margin-bottom:2px;} .addr{font-size:12px;color:#666;margin-bottom:20px;}
+      table{width:100%;border-collapse:collapse;} td{padding:8px 0;border-bottom:1px dashed #ccc;font-size:14px;}
+      td:last-child{text-align:right;font-weight:bold;} .foot{text-align:center;margin-top:24px;font-size:12px;color:#666;}
+    </style></head><body>
+      <h2>MANJU CLASSES</h2>
+      <div class="addr">${branch.name} — ${branch.address}</div>
+      <table>
+        <tr><td>Receipt No.</td><td>${p.receiptNo}</td></tr>
+        <tr><td>Date</td><td>${p.date}</td></tr>
+        <tr><td>Student</td><td>${p.studentName} (${p.studentId})</td></tr>
+        <tr><td>Fee Month</td><td>${p.feeMonth}</td></tr>
+        <tr><td>Amount</td><td>₹${p.amount}</td></tr>
+        <tr><td>Discount</td><td>₹${p.discount}</td></tr>
+        <tr><td>Fine</td><td>₹${p.fine}</td></tr>
+        <tr><td>Total Paid</td><td>₹${p.total}</td></tr>
+        <tr><td>Method</td><td>${p.method}</td></tr>
+        <tr><td>Collected By</td><td>${p.collectedBy}</td></tr>
+      </table>
+      <div class="foot">Thank you for choosing Manju Classes.</div>
+    </body></html>
+  `);
+  w.document.close();
+  w.print();
+}
+
+// ---------- EXPENSES (branch-separated) ----------
+function renderExpenses(){
+  const main = document.getElementById('mainContent');
+  const rows = EXPENSES.filter(e => inBranch(e.branch));
+  const total = rows.reduce((s,e)=>s+e.amount,0);
+  main.innerHTML = `
+    <div class="page-header"><h2>Expenses</h2><span class="date-tag">Total: ₹${total.toLocaleString('en-IN')}</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddExpense()">+ Add Expense</button></div>
+    ${rows.map(e => `
+      <div class="list-card" style="cursor:default;">
+        <div class="list-avatar">💸</div>
+        <div class="list-main">
+          <div class="name">${e.category}</div>
+          <div class="meta">${e.description} · ${e.date} · ${e.method}</div>
+          <div class="list-badges">${branchTag(e.branch)}</div>
+        </div>
+        <div class="list-side"><div class="amt due">₹${e.amount}</div></div>
+      </div>`).join('') || `<div class="empty-state">No expense records in this branch.</div>`}
+  `;
+}
+function openAddExpense(){
+  openModal(`
+    <div class="modal-header"><h3>Add Expense</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Category</label>
+        <select id="ex_cat" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option>Rent</option><option>Electricity</option><option>Teacher Salary</option><option>Staff Salary</option>
+          <option>Stationery</option><option>Marketing</option><option>Maintenance</option><option>Internet</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Amount (₹)</label><input type="number" id="ex_amount"></div>
+      <div class="field full"><label>Description</label><input type="text" id="ex_desc"></div>
+      <div class="field"><label>Method</label>
+        <select id="ex_method" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${enabledPaymentMethods().map(m=>`<option>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Branch</label>
+        <select id="ex_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveExpense()">Save Expense</button>
+    </div>
+  `);
+}
+function saveExpense(){
+  const amount = parseFloat(document.getElementById('ex_amount').value) || 0;
+  if(amount<=0){ alert('Please enter a valid amount'); return; }
+  const id = 'EXP-'+(10+EXPENSES.length);
+  const rec = {
+    id, branch:document.getElementById('ex_branch').value, date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+    category:document.getElementById('ex_cat').value, amount, description:document.getElementById('ex_desc').value||'-',
+    method:document.getElementById('ex_method').value, addedBy:'Admin'
+  };
+  EXPENSES.unshift(rec);
+  persist('expenses', id, rec);
+  logActivity('Admin', `Added expense — ${rec.category} ₹${rec.amount} (${CONFIG.branches[rec.branch].name})`, rec.branch);
+  closeModal();
+  renderExpenses();
+}
+
+// ---------- SALARIES (branch-separated) ----------
+function renderSalary(){
+  const main = document.getElementById('mainContent');
+  const rows = SALARIES.filter(s => inBranch(s.branch));
+  main.innerHTML = `
+    <div class="page-header"><h2>Staff Salaries</h2></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddSalary()">+ Add Salary Record</button></div>
+    ${rows.map(s => `
+      <div class="list-card" style="cursor:default;">
+        <div class="list-avatar">${initials(s.employee)}</div>
+        <div class="list-main">
+          <div class="name">${s.employee}</div>
+          <div class="meta">${s.month} · Net ₹${s.net} · ${s.paymentDate}</div>
+          <div class="list-badges">${branchTag(s.branch)}<span class="badge ${s.status==='paid'?'active':'new'}">${s.status}</span></div>
+        </div>
+        ${s.status==='pending' ? `<button class="btn-add" onclick="markSalaryPaid('${s.id}')">Mark Paid</button>` : ''}
+      </div>`).join('') || `<div class="empty-state">No salary records in this branch.</div>`}
+  `;
+}
+function markSalaryPaid(id){
+  const s = SALARIES.find(x=>x.id===id);
+  s.status = 'paid';
+  s.paymentDate = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+  persist('salaries', id, { status:'paid', paymentDate:s.paymentDate });
+  logActivity('Admin', `Salary paid — ${s.employee} ₹${s.net}`, s.branch);
+  renderSalary();
+}
+function openAddSalary(){
+  openModal(`
+    <div class="modal-header"><h3>Add Salary Record</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Employee</label><input type="text" id="sal_emp"></div>
+      <div class="field"><label>Month</label><input type="text" id="sal_month" placeholder="August"></div>
+      <div class="field"><label>Branch</label>
+        <select id="sal_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+      <div class="field"><label>Base Salary (₹)</label><input type="number" id="sal_base"></div>
+      <div class="field"><label>Bonus (₹)</label><input type="number" id="sal_bonus" value="0"></div>
+      <div class="field"><label>Deduction (₹)</label><input type="number" id="sal_ded" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveSalary()">Save</button>
+    </div>
+  `);
+}
+function saveSalary(){
+  const employee = document.getElementById('sal_emp').value.trim();
+  if(!employee){ alert('Employee name is required'); return; }
+  const base = parseFloat(document.getElementById('sal_base').value)||0;
+  const bonus = parseFloat(document.getElementById('sal_bonus').value)||0;
+  const ded = parseFloat(document.getElementById('sal_ded').value)||0;
+  const id = 'SAL-'+(10+SALARIES.length);
+  const rec = {
+    id, employee, branch:document.getElementById('sal_branch').value, month:document.getElementById('sal_month').value||'-',
+    salary:base, bonus, deduction:ded, net: base+bonus-ded, paymentDate:'—', method:'—', status:'pending'
+  };
+  SALARIES.unshift(rec);
+  persist('salaries', id, rec);
+  closeModal();
+  renderSalary();
+}
+
+// ---------- TESTS, RESULTS & PERFORMANCE ----------
+function renderTests(){
+  const main = document.getElementById('mainContent');
+  const rows = TESTS.filter(t => inBranch(t.branch)).sort((a,b)=>b.id.localeCompare(a.id));
+  main.innerHTML = `
+    <div class="page-header"><h2>Tests & Results</h2><span class="date-tag">${rows.length} shown</span></div>
+    <div class="toolbar"><button class="btn-add" onclick="openAddTest()">+ Create Test</button></div>
+    ${rows.map(t => {
+      const resultCount = RESULTS.filter(r=>r.testId===t.id).length;
+      return `
+      <div class="section-card">
+        <h3>${t.name} — ${t.subject}</h3>
+        <div class="detail-row"><span class="k">Class / Batch</span><span class="v">${t.cls} · ${t.batch}</span></div>
+        <div class="detail-row"><span class="k">Date</span><span class="v">${t.date}</span></div>
+        <div class="detail-row"><span class="k">Max Marks</span><span class="v">${t.maxMarks}</span></div>
+        <div class="detail-row"><span class="k">Marks Entered</span><span class="v">${resultCount} student(s)</span></div>
+        <div class="modal-actions" style="margin-top:12px;">
+          <button class="btn-secondary" onclick="openEnterMarks('${t.id}')">✏️ Enter Marks</button>
+          <button class="btn-primary" onclick="viewTestResults('${t.id}')">🏆 View Results</button>
+        </div>
+      </div>`;
+    }).join('') || `<div class="empty-state">No tests in this branch.</div>`}
+  `;
+}
+function openAddTest(){
+  openModal(`
+    <div class="modal-header"><h3>Create Test / Exam</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Test Name</label><input type="text" id="tst_name" placeholder="e.g. Unit Test 2"></div>
+      <div class="field"><label>Subject</label><input type="text" id="tst_subj"></div>
+      <div class="field"><label>Class</label><input type="text" id="tst_cls"></div>
+      <div class="field full"><label>Batch</label><input type="text" id="tst_batch" placeholder="e.g. 10A Morning"></div>
+      <div class="field"><label>Max Marks</label><input type="number" id="tst_max" value="100"></div>
+      <div class="field"><label>Date</label><input type="text" id="tst_date" placeholder="e.g. 05 Sep"></div>
+      <div class="field full"><label>Branch</label>
+        <select id="tst_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveTest()">Save Test</button>
+    </div>
+  `);
+}
+function saveTest(){
+  const name = document.getElementById('tst_name').value.trim();
+  if(!name){ alert('Test name is required'); return; }
+  const id = 'TST-'+(10+TESTS.length);
+  const rec = {
+    id, name, subject:document.getElementById('tst_subj').value||'-', cls:document.getElementById('tst_cls').value||'-',
+    batch:document.getElementById('tst_batch').value||'-', branch:document.getElementById('tst_branch').value,
+    maxMarks: parseFloat(document.getElementById('tst_max').value)||100, date:document.getElementById('tst_date').value||'-'
+  };
+  TESTS.unshift(rec);
+  persist('tests', id, rec);
+  closeModal();
+  renderTests();
+}
+function openEnterMarks(testId){
+  const t = TESTS.find(x=>x.id===testId);
+  const students = STUDENTS.filter(s => s.batch === t.batch);
+  if(!students.length){
+    openModal(`<div class="modal-header"><h3>Enter Marks</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="empty-state">Batch "${t.batch}" has no students assigned.</div>
+      <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>`);
+    return;
+  }
+  openModal(`
+    <div class="modal-header"><h3>Enter Marks — ${t.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Max Marks: ${t.maxMarks}</p>
+    ${students.map(s => {
+      const existing = RESULTS.find(r=>r.testId===testId && r.studentId===s.id);
+      return `
+      <div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <label style="flex:1;margin-bottom:0;text-transform:none;font-size:13px;color:var(--ink);">${s.name}</label>
+        <input type="number" id="mk_${s.id}" value="${existing ? existing.marks : ''}" placeholder="0" style="width:80px;padding:8px;border:1px solid var(--line);border-radius:8px;">
+      </div>`;
+    }).join('')}
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveMarks('${testId}')">Save Marks</button>
+    </div>
+  `);
+}
+function saveMarks(testId){
+  const t = TESTS.find(x=>x.id===testId);
+  const students = STUDENTS.filter(s => s.batch === t.batch);
+  students.forEach(s => {
+    const input = document.getElementById('mk_'+s.id);
+    const marks = parseFloat(input.value);
+    if(isNaN(marks)) return;
+    const existing = RESULTS.find(r=>r.testId===testId && r.studentId===s.id);
+    if(existing){
+      existing.marks = marks;
+      persist('results', existing.id, { marks });
+    } else {
+      const id = 'RES-'+(10+RESULTS.length);
+      const rec = { id, testId, studentId:s.id, studentName:s.name, marks, branch:t.branch };
+      RESULTS.push(rec);
+      persist('results', id, rec);
+    }
+  });
+  closeModal();
+  renderTests();
+}
+function viewTestResults(testId){
+  const t = TESTS.find(x=>x.id===testId);
+  const rows = RESULTS.filter(r=>r.testId===testId).sort((a,b)=>b.marks-a.marks);
+  openModal(`
+    <div class="modal-header"><h3>Results — ${t.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${rows.length ? rows.map((r,i) => {
+      const pct = (r.marks/t.maxMarks*100).toFixed(1);
+      return `
+      <div class="detail-row">
+        <span class="k">#${i+1} ${r.studentName}</span>
+        <span class="v">${r.marks}/${t.maxMarks} (${pct}%) — ${gradeFor(pct)}</span>
+      </div>`;
+    }).join('') : `<div class="empty-state">No marks entered yet.</div>`}
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
+  `);
+}
+function viewPerformance(studentId){
+  const s = STUDENTS.find(x=>x.id===studentId);
+  const rows = RESULTS.filter(r=>r.studentId===studentId);
+  const withPct = rows.map(r => {
+    const t = TESTS.find(x=>x.id===r.testId);
+    const pct = t ? (r.marks/t.maxMarks*100) : 0;
+    return { ...r, test:t, pct };
+  }).filter(r=>r.test);
+  const avg = withPct.length ? (withPct.reduce((s,r)=>s+r.pct,0)/withPct.length).toFixed(1) : '—';
+  const highest = withPct.length ? Math.max(...withPct.map(r=>r.pct)).toFixed(1) : '—';
+
+  openModal(`
+    <div class="modal-header"><h3>Performance — ${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+      <div class="stat-card"><div class="label">Tests</div><div class="value">${withPct.length}</div></div>
+      <div class="stat-card"><div class="label">Average</div><div class="value">${avg}%</div></div>
+      <div class="stat-card"><div class="label">Highest</div><div class="value">${highest}%</div></div>
+    </div>
+    ${withPct.length ? withPct.map(r => `
+      <div class="detail-row">
+        <span class="k">${r.test.name} (${r.test.subject})</span>
+        <span class="v">${r.marks}/${r.test.maxMarks} — ${gradeFor(r.pct)}</span>
+      </div>`).join('') : `<div class="empty-state">No test results yet.</div>`}
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal()">Close</button></div>
+  `);
+}
+
+// ---------- NOTIFICATIONS ----------
+function renderNotifications(){
+  const main = document.getElementById('mainContent');
+  const isStaff = currentRole === 'admin' || currentRole === 'teacher';
+  let rows = NOTIFICATIONS.filter(n => n.branch==='all' || inBranch(n.branch)).sort((a,b)=>b.id.localeCompare(a.id));
+  if(!isStaff) rows = rows.filter(n => n.audience !== 'Teachers'); // students/parents ko sirf apne liye ki notices dikhein
+  main.innerHTML = `
+    <div class="page-header"><h2>Notifications</h2></div>
+    ${isStaff ? `<div class="toolbar"><button class="btn-add" onclick="openSendNotice()">+ Send Notice</button></div>` : ''}
+    ${rows.map(n => `
+      <div class="section-card">
+        <h3>${n.title}</h3>
+        <div class="detail-row"><span class="k">Type</span><span class="v">${n.type}</span></div>
+        <div class="detail-row"><span class="k">Audience</span><span class="v">${n.audience}</span></div>
+        <div class="detail-row"><span class="k">Date</span><span class="v">${n.date}</span></div>
+        <p style="font-size:12.5px;color:var(--muted);margin:8px 0;">${n.message}</p>
+        ${isStaff ? `
+        <div class="modal-actions" style="margin-top:6px;">
+          <button class="btn-add" onclick="broadcastNotice('${n.id}')">📱 Broadcast via WhatsApp</button>
+          <button class="btn-primary" onclick="sendPushNotification('${n.id}')">🔔 Send Push Notification</button>
+        </div>` : ''}
+      </div>`).join('') || `<div class="empty-state">No notices sent yet.</div>`}
+  `;
+}
+function openSendNotice(){
+  openModal(`
+    <div class="modal-header"><h3>Send Notice</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Title</label><input type="text" id="n_title"></div>
+      <div class="field"><label>Type</label>
+        <select id="n_type" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${NOTICE_TYPES.map(t=>`<option>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Audience</label>
+        <select id="n_audience" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          ${AUDIENCE_OPTIONS.map(a=>`<option>${a}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field full"><label>Message</label><input type="text" id="n_message" placeholder="Full notice text"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveNotice()">Send</button>
+    </div>
+  `);
+}
+function saveNotice(){
+  const title = document.getElementById('n_title').value.trim();
+  const message = document.getElementById('n_message').value.trim();
+  if(!title || !message){ alert('Both title and message are required'); return; }
+  const audience = document.getElementById('n_audience').value;
+  const branch = audience==='Branch 1' ? 'b1' : audience==='Branch 2' ? 'b2' : 'all';
+  const id = 'NOT-'+(10+NOTIFICATIONS.length);
+  const rec = { id, title, message, type:document.getElementById('n_type').value, audience, branch, date:new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}) };
+  NOTIFICATIONS.unshift(rec);
+  persist('notifications', id, rec);
+  logActivity('Admin', `Sent notice — "${title}" to ${audience}`, branch);
+  closeModal();
+  renderNotifications();
+}
+function broadcastNotice(id){
+  const n = NOTIFICATIONS.find(x=>x.id===id);
+  let targets = [];
+  if(n.audience === 'Teachers') targets = TEACHERS.filter(t => n.branch==='all' || t.branch===n.branch);
+  else targets = STUDENTS.filter(s => n.branch==='all' || s.branch===n.branch);
+  if(!targets.length){ alert('No contacts found for this audience.'); return; }
+  // wa.me sirf ek number ek time pe support karta hai — real bulk broadcast ke liye
+  // WhatsApp Business/Cloud API chahiye. Demo ke liye pehla contact khulta hai.
+  openWhatsApp(targets[0].phone, `${n.title}\n\n${n.message}\n\n— Manju Classes`);
+  alert(`⚠️ Note: the wa.me link can only open 1 contact at a time (this opened only "${targets[0].name}"). There are ${targets.length} total contacts — sending to all of them at once needs the WhatsApp Business API, which can be configured in Phase 7 Settings.`);
+}
+async function sendPushNotification(id){
+  const n = NOTIFICATIONS.find(x=>x.id===id);
+  if(!FIREBASE_ENABLED){ alert('Push notifications only work in Live Mode — please connect Firebase first.'); return; }
+  try{
+    const res = await fetch('/.netlify/functions/send-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: n.title, message: n.message, branch: n.branch, audience: n.audience })
+    });
+    const data = await res.json();
+    if(res.ok){
+      alert(`🔔 Push notification bheji gayi!\n\nSuccess: ${data.successCount ?? 0}\nFail: ${data.failureCount ?? 0}${data.note ? '\n\n'+data.note : ''}`);
+      logActivity('Admin', `Sent push notification — "${n.title}" to ${n.audience}`, n.branch);
+    } else {
+      alert('❌ Push notification bhejne mein error: ' + (data.error || 'Unknown error'));
+    }
+  }catch(err){
+    alert('❌ Error sending push notification: ' + err.message + '\n\nCheck that the Netlify Function is deployed (see SETUP.md Phase 2).');
+  }
+}
+
+// ---------- REPORTS ----------
+// ---------- BRANCH ANALYTICS (Super Admin only — profitability comparison) ----------
+function branchStats(branchId){
+  const students = STUDENTS.filter(s=>s.branch===branchId);
+  const activeStudents = students.filter(s=>s.status==='active').length;
+  const teachers = TEACHERS.filter(t=>t.branch===branchId).length;
+  const revenue = PAYMENTS.filter(p=>p.branch===branchId).reduce((s,p)=>s+p.total,0);
+  const pendingFees = students.reduce((s,st)=>s+(st.feeDue||0),0);
+  const expenses = EXPENSES.filter(e=>e.branch===branchId).reduce((s,e)=>s+e.amount,0);
+  const salaryCost = SALARIES.filter(sa=>sa.branch===branchId).reduce((s,sa)=>s+sa.net,0);
+  const netProfit = revenue - expenses - salaryCost;
+  const attRows = ATTENDANCE.filter(a=>a.branch===branchId);
+  const presentCount = attRows.filter(a=>a.status==='P').length;
+  const attendancePct = attRows.length ? (presentCount/attRows.length*100) : null;
+  const billed = revenue + pendingFees;
+  const collectionRate = billed ? (revenue/billed*100) : null;
+  const avgRevenuePerStudent = students.length ? (revenue/students.length) : 0;
+  return { branchId, students, activeStudents, teachers, revenue, pendingFees, expenses, salaryCost, netProfit, attendancePct, collectionRate, avgRevenuePerStudent };
+}
+function renderBranchAnalytics(){
+  const main = document.getElementById('mainContent');
+  if(!(currentRole === 'admin' && currentUserBranch === 'all')){
+    main.innerHTML = `<div class="page-header"><h2>Branch Analytics</h2></div><div class="empty-state">🔒 This section is only for Super Admin.</div>`;
+    return;
+  }
+  const b1 = branchStats('b1');
+  const b2 = branchStats('b2');
+  const winner = b1.netProfit === b2.netProfit ? null : (b1.netProfit > b2.netProfit ? b1 : b2);
+  const loser  = winner ? (winner.branchId==='b1' ? b2 : b1) : null;
+
+  const reasons = [];
+  if(winner){
+    const wName = CONFIG.branches[winner.branchId].name, lName = CONFIG.branches[loser.branchId].name;
+    if(winner.revenue > loser.revenue) reasons.push(`${wName} collected more fees — ₹${winner.revenue.toLocaleString('en-IN')} vs ₹${loser.revenue.toLocaleString('en-IN')}.`);
+    if(winner.expenses < loser.expenses) reasons.push(`${wName} has lower expenses — ₹${winner.expenses.toLocaleString('en-IN')} vs ₹${loser.expenses.toLocaleString('en-IN')}.`);
+    if(winner.salaryCost < loser.salaryCost) reasons.push(`${wName} has a lower salary cost — ₹${winner.salaryCost.toLocaleString('en-IN')} vs ₹${loser.salaryCost.toLocaleString('en-IN')}.`);
+    if(winner.students.length > loser.students.length) reasons.push(`${wName} has more students — ${winner.students.length} vs ${loser.students.length}.`);
+    if(winner.avgRevenuePerStudent > loser.avgRevenuePerStudent) reasons.push(`${wName} has a higher average revenue per student — ₹${Math.round(winner.avgRevenuePerStudent).toLocaleString('en-IN')} vs ₹${Math.round(loser.avgRevenuePerStudent).toLocaleString('en-IN')}.`);
+    if(winner.collectionRate!=null && loser.collectionRate!=null && winner.collectionRate > loser.collectionRate) reasons.push(`${wName} has a better fee collection rate — ${winner.collectionRate.toFixed(1)}% vs ${loser.collectionRate.toFixed(1)}% (${lName} has more fees pending — ₹${loser.pendingFees.toLocaleString('en-IN')}).`);
+    if(winner.attendancePct!=null && loser.attendancePct!=null && winner.attendancePct > loser.attendancePct) reasons.push(`${wName} has better attendance — ${winner.attendancePct.toFixed(1)}% vs ${loser.attendancePct.toFixed(1)}%.`);
+    if(!reasons.length) reasons.push(`${wName} has a higher overall net profit, but individual metrics are mixed — see the Reports section for details.`);
+  }
+
+  const row = (label, b1v, b2v) => `<div class="compare-row"><span class="k">${label}</span><span class="v">${b1v}</span><span class="v">${b2v}</span></div>`;
+
+  main.innerHTML = `
+    <div class="page-header"><h2>Branch Analytics</h2><span class="date-tag">Super Admin Only</span></div>
+
+    ${winner ? `
+    <div class="section-card" style="border-left:3px solid var(--ok);">
+      <h3>🏆 ${CONFIG.branches[winner.branchId].name} is more profitable</h3>
+      <div class="detail-row"><span class="k">Net Profit Difference</span><span class="v" style="color:var(--ok)">₹${Math.abs(winner.netProfit-loser.netProfit).toLocaleString('en-IN')}</span></div>
+      <p style="font-size:12.5px;color:var(--muted);margin:8px 0 4px;">Reasons:</p>
+      <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;">
+        ${reasons.map(r=>`<li>${r}</li>`).join('')}
+      </ul>
+    </div>` : `<div class="section-card"><h3>Both branches have equal net profit</h3></div>`}
+
+    <div class="section-card">
+      <h3>Side-by-Side Comparison</h3>
+      <div class="compare-row"><span class="k"></span><span class="v" style="font-weight:600;">${CONFIG.branches.b1.name}</span><span class="v" style="font-weight:600;">${CONFIG.branches.b2.name}</span></div>
+      ${row('Total Students', b1.students.length, b2.students.length)}
+      ${row('Active Students', b1.activeStudents, b2.activeStudents)}
+      ${row('Teachers', b1.teachers, b2.teachers)}
+      ${row('Revenue Collected', '₹'+b1.revenue.toLocaleString('en-IN'), '₹'+b2.revenue.toLocaleString('en-IN'))}
+      ${row('Pending Fees', '₹'+b1.pendingFees.toLocaleString('en-IN'), '₹'+b2.pendingFees.toLocaleString('en-IN'))}
+      ${row('Fee Collection Rate', b1.collectionRate!=null?b1.collectionRate.toFixed(1)+'%':'—', b2.collectionRate!=null?b2.collectionRate.toFixed(1)+'%':'—')}
+      ${row('Expenses', '₹'+b1.expenses.toLocaleString('en-IN'), '₹'+b2.expenses.toLocaleString('en-IN'))}
+      ${row('Salary Cost', '₹'+b1.salaryCost.toLocaleString('en-IN'), '₹'+b2.salaryCost.toLocaleString('en-IN'))}
+      ${row('Net Profit', '₹'+b1.netProfit.toLocaleString('en-IN'), '₹'+b2.netProfit.toLocaleString('en-IN'))}
+      ${row('Avg Revenue / Student', '₹'+Math.round(b1.avgRevenuePerStudent).toLocaleString('en-IN'), '₹'+Math.round(b2.avgRevenuePerStudent).toLocaleString('en-IN'))}
+      ${row('Attendance', b1.attendancePct!=null?b1.attendancePct.toFixed(1)+'%':'—', b2.attendancePct!=null?b2.attendancePct.toFixed(1)+'%':'—')}
+    </div>
+  `;
+}
+
+// ---------- PROFILE PHOTOS ----------
+// Sabhi zaroori photos login ke waqt hi ek baar hydrateFromFirestore() mein load ho jaati hain
+// (STUDENTS array ke .photo field mein) — isliye yahan koi per-view/lazy fetch nahi hai.
+// Ek chhota coaching institute Firestore ki 50,000 reads/day free limit kabhi cross nahi karega.
+const DEMO_PHOTOS = {}; // Demo Mode mein sirf is session ke liye in-memory (Firebase nahi lagta)
+
+function compressImageFile(file, maxDim = 300, quality = 0.72){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if(width > height){ if(width > maxDim){ height = Math.round(height * maxDim/width); width = maxDim; } }
+        else { if(height > maxDim){ width = Math.round(width * maxDim/height); height = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality)); // chhoti, compressed JPEG — kam storage/bandwidth
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+async function saveStudentPhoto(studentId, branch, dataUrl){
+  if(!FIREBASE_ENABLED){ DEMO_PHOTOS[studentId] = dataUrl; return true; }
+  try{
+    await db.collection('studentPhotos').doc(studentId).set({ photo: dataUrl, branch, updatedAt: new Date().toISOString() });
+    return true;
+  }catch(err){
+    alert('Error saving photo: ' + err.message);
+    return false;
+  }
+}
+
+// ---------- MY PROFILE (Student only) ----------
+function renderMyProfile(){
+  const main = document.getElementById('mainContent');
+  const s = STUDENTS.find(x => x.id === currentStudentId);
+  if(!s){
+    main.innerHTML = `<div class="page-header"><h2>My Profile</h2></div><div class="empty-state">Profile data not found — please contact admin.</div>`;
+    return;
+  }
+  main.innerHTML = `
+    <div class="page-header"><h2>My Profile</h2></div>
+    <div class="section-card" style="text-align:center;">
+      <div id="myProfilePhotoBox" style="width:110px;height:110px;border-radius:50%;margin:0 auto 12px;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:34px;color:var(--muted);">
+        ${s.photo ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover;">` : '🙍'}
+      </div>
+      <input type="file" accept="image/*" id="profilePhotoInput" style="display:none;" onchange="onProfilePhotoSelected(event)">
+      <button class="btn-add" onclick="document.getElementById('profilePhotoInput').click()">📷 Change Photo</button>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;">This photo is only visible to you, your teacher, and admin — not to any other student or parent.</p>
+    </div>
+    <div class="section-card">
+      <h3>My Details</h3>
+      <div class="detail-row"><span class="k">Name</span><span class="v">${s.name}</span></div>
+      <div class="detail-row"><span class="k">Student ID</span><span class="v">${s.id}</span></div>
+      <div class="detail-row"><span class="k">Class</span><span class="v">${s.cls}</span></div>
+      <div class="detail-row"><span class="k">Batch</span><span class="v">${s.batch}</span></div>
+      <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[s.branch].name}</span></div>
+      <div class="detail-row"><span class="k">Father's Name</span><span class="v">${s.father}</span></div>
+      <div class="detail-row"><span class="k">Phone</span><span class="v">${s.phone}</span></div>
+    </div>
+  `;
+}
+async function onProfilePhotoSelected(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const box = document.getElementById('myProfilePhotoBox');
+  box.innerHTML = '⏳';
+  try{
+    const dataUrl = await compressImageFile(file);
+    const ok = await saveStudentPhoto(currentStudentId, currentUserBranch, dataUrl);
+    if(ok){
+      const s = STUDENTS.find(x => x.id === currentStudentId);
+      if(s) s.photo = dataUrl; // local cache turant update — dobara fetch ki zaroorat nahi
+      box.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+      box.innerHTML = '🙍';
+    }
+  }catch(err){
+    alert('Error processing photo: ' + err.message);
+    box.innerHTML = '🙍';
+  }
+  event.target.value = '';
+}
+
+function renderReports(){
+  const main = document.getElementById('mainContent');
+  const students = STUDENTS.filter(s=>inBranch(s.branch));
+  const activeCount = students.filter(s=>s.status==='active').length;
+  const newAdmissions = ENQUIRIES.filter(e=>e.status==='admitted' && inBranch(e.branch)).length;
+  const classCounts = {};
+  students.forEach(s => classCounts[s.cls] = (classCounts[s.cls]||0)+1);
+
+  const attRows = ATTENDANCE.filter(a=>inBranch(a.branch));
+  const presentCount = attRows.filter(a=>a.status==='P').length;
+  const attPct = attRows.length ? ((presentCount/attRows.length)*100).toFixed(1) : '—';
+
+  const rev = branchPayments().reduce((s,p)=>s+p.total,0);
+  const exp = EXPENSES.filter(e=>inBranch(e.branch)).reduce((s,e)=>s+e.amount,0);
+  const net = rev - exp;
+
+  const resultsInBranch = RESULTS.filter(r=>inBranch(r.branch)).map(r => {
+    const t = TESTS.find(x=>x.id===r.testId);
+    return t ? { ...r, pct:(r.marks/t.maxMarks*100) } : null;
+  }).filter(Boolean);
+  const avgScore = resultsInBranch.length ? (resultsInBranch.reduce((s,r)=>s+r.pct,0)/resultsInBranch.length).toFixed(1) : '—';
+  const topPerformer = resultsInBranch.length ? resultsInBranch.reduce((a,b)=>b.pct>a.pct?b:a).studentName : '—';
+
+  const logRows = ACTIVITY.filter(a => a.branch==='all' || inBranch(a.branch)).slice(0,15);
+
+  main.innerHTML = `
+    <div class="page-header"><h2>Reports</h2><span class="date-tag">${currentBranch==='all' ? 'All Branches' : CONFIG.branches[currentBranch].name}</span></div>
+
+    <div class="section-card">
+      <h3>Student Report</h3>
+      <div class="detail-row"><span class="k">Total Students</span><span class="v">${students.length}</span></div>
+      <div class="detail-row"><span class="k">Active Students</span><span class="v">${activeCount}</span></div>
+      <div class="detail-row"><span class="k">New Admissions</span><span class="v">${newAdmissions}</span></div>
+      ${Object.keys(classCounts).sort().map(c => `<div class="detail-row"><span class="k">Class ${c}</span><span class="v">${classCounts[c]} students</span></div>`).join('')}
+    </div>
+
+    <div class="section-card">
+      <h3>Attendance Report</h3>
+      <div class="detail-row"><span class="k">Overall Attendance</span><span class="v">${attPct}%</span></div>
+      <div class="detail-row"><span class="k">Records Logged</span><span class="v">${attRows.length}</span></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Financial Report</h3>
+      <div class="detail-row"><span class="k">Total Revenue</span><span class="v" style="color:var(--ok)">₹${rev.toLocaleString('en-IN')}</span></div>
+      <div class="detail-row"><span class="k">Total Expenses</span><span class="v" style="color:var(--crimson)">₹${exp.toLocaleString('en-IN')}</span></div>
+      <div class="detail-row"><span class="k">Net Profit</span><span class="v" style="font-size:15px;">₹${net.toLocaleString('en-IN')}</span></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Academic Report</h3>
+      <div class="detail-row"><span class="k">Average Score</span><span class="v">${avgScore}%</span></div>
+      <div class="detail-row"><span class="k">Top Performer</span><span class="v">${topPerformer}</span></div>
+      <div class="detail-row"><span class="k">Tests Conducted</span><span class="v">${TESTS.filter(t=>inBranch(t.branch)).length}</span></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Activity Log</h3>
+      ${logRows.map(a => `
+        <div class="activity-row">
+          <span><span class="who">${a.who}:</span> ${a.what}</span>
+          <span class="when">${a.when}</span>
+        </div>`).join('') || `<div class="empty-state">No activity yet.</div>`}
+    </div>
+  `;
+}
+
+// ---------- SETTINGS (Super Admin only) ----------
+function renderSettings(){
+  const main = document.getElementById('mainContent');
+  if(currentUserBranch !== 'all'){
+    main.innerHTML = `<div class="page-header"><h2>Settings</h2></div><div class="empty-state">🔒 Settings is only for Super Admin. Branch Admin can manage their branch's data, but cannot change institute-wide settings.</div>`;
+    return;
+  }
+  main.innerHTML = `
+    <div class="page-header"><h2>Settings</h2><span class="date-tag">${FIREBASE_ENABLED ? '🟢 Live Mode' : '🟡 Preview Mode'}</span></div>
+
+    <div class="section-card">
+      <h3>Institute Settings</h3>
+      <div class="detail-row"><span class="k">Name</span><span class="v">${CONFIG.instituteName}</span></div>
+      <div class="detail-row"><span class="k">Address</span><span class="v">${CONFIG.instituteAddress}</span></div>
+      <div class="detail-row"><span class="k">Phone</span><span class="v">${CONFIG.institutePhone}</span></div>
+      <button class="btn-add" style="margin-top:10px;width:100%;" onclick="openEditInstitute()">Edit Institute Details</button>
+    </div>
+
+    <div class="section-card">
+      <h3>Branch Management</h3>
+      <div class="detail-row"><span class="k">${CONFIG.branches.b1.name}</span><span class="v">${CONFIG.branches.b1.address}</span></div>
+      <div class="detail-row"><span class="k">${CONFIG.branches.b2.name}</span><span class="v">${CONFIG.branches.b2.address}</span></div>
+      <div class="modal-actions" style="margin-top:10px;">
+        <button class="btn-secondary" onclick="openEditBranch('b1')">Edit Branch 1</button>
+        <button class="btn-secondary" onclick="openEditBranch('b2')">Edit Branch 2</button>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>Payment Settings</h3>
+      <div class="detail-row"><span class="k">WhatsApp Number</span><span class="v">+${CONFIG.whatsappNumber}</span></div>
+      <div class="detail-row"><span class="k">Late Fine</span><span class="v">₹${CONFIG.lateFee}</span></div>
+      <div class="detail-row"><span class="k">Receipt Prefix</span><span class="v">${CONFIG.receiptPrefix}</span></div>
+      <div class="detail-row"><span class="k">Enabled Methods</span><span class="v">${enabledPaymentMethods().join(', ') || 'None'}</span></div>
+      <button class="btn-add" style="margin-top:10px;width:100%;" onclick="openEditPayment()">Edit Payment Settings</button>
+    </div>
+
+    <div class="section-card">
+      <h3>Security Settings</h3>
+      ${FIREBASE_ENABLED
+        ? `<p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Change your login password.</p>
+           <div class="field"><input type="password" id="newPassField" placeholder="New password (min 6 characters)"></div>
+           <button class="btn-add" style="width:100%;" onclick="submitChangePassword()">Change Password</button>`
+        : `<p style="font-size:12.5px;color:var(--muted);">Password change only works in Live Mode (Firebase connected).</p>`}
+    </div>
+
+    <div class="section-card">
+      <h3>Notification Settings</h3>
+      ${FIREBASE_ENABLED
+        ? `<p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Turn on push notifications for this device — sending a Notice/Alert will pop up here even if the app is closed.</p>
+           <button class="btn-add" style="width:100%;" onclick="requestNotificationPermission()">🔔 Enable Notifications</button>`
+        : `<p style="font-size:12.5px;color:var(--muted);">Push notifications only work in Live Mode (Firebase connected) — see SETUP.md Phase 2.</p>`}
+    </div>
+
+    <div class="section-card">
+      <h3>App Info</h3>
+      <div class="detail-row"><span class="k">Backend</span><span class="v">${FIREBASE_ENABLED ? 'Firebase (Live)' : 'Preview (local data)'}</span></div>
+      <div class="detail-row"><span class="k">Version</span><span class="v">Phase 1–7 build</span></div>
+      <button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="triggerInstallPrompt()">📲 Install App on this Device</button>
+    </div>
+  `;
+}
+function openEditInstitute(){
+  openModal(`
+    <div class="modal-header"><h3>Edit Institute Details</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Institute Name</label><input type="text" id="in_name" value="${CONFIG.instituteName}"></div>
+    <div class="field"><label>Address</label><input type="text" id="in_addr" value="${CONFIG.instituteAddress}"></div>
+    <div class="field"><label>Phone</label><input type="text" id="in_phone" value="${CONFIG.institutePhone}"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveInstitute()">Save</button>
+    </div>
+  `);
+}
+function saveInstitute(){
+  CONFIG.instituteName = document.getElementById('in_name').value.trim() || CONFIG.instituteName;
+  CONFIG.instituteAddress = document.getElementById('in_addr').value.trim();
+  CONFIG.institutePhone = document.getElementById('in_phone').value.trim();
+  persist('settings', 'global', { instituteName:CONFIG.instituteName, instituteAddress:CONFIG.instituteAddress, institutePhone:CONFIG.institutePhone });
+  logActivity('Admin', 'Updated institute settings', 'all');
+  applyConfigToUI();
+  closeModal();
+  renderSettings();
+}
+function openEditBranch(branchId){
+  const b = CONFIG.branches[branchId];
+  openModal(`
+    <div class="modal-header"><h3>Edit ${b.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>Branch Name</label><input type="text" id="br_name" value="${b.name}"></div>
+    <div class="field"><label>Address</label><input type="text" id="br_addr" value="${b.address}"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveBranchEdit('${branchId}')">Save</button>
+    </div>
+  `);
+}
+function saveBranchEdit(branchId){
+  CONFIG.branches[branchId].name = document.getElementById('br_name').value.trim() || CONFIG.branches[branchId].name;
+  CONFIG.branches[branchId].address = document.getElementById('br_addr').value.trim();
+  persist('settings', 'global', { branches: CONFIG.branches });
+  logActivity('Admin', `Updated ${CONFIG.branches[branchId].name} details`, branchId);
+  applyConfigToUI();
+  closeModal();
+  renderSettings();
+}
+function openEditPayment(){
+  openModal(`
+    <div class="modal-header"><h3>Edit Payment Settings</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>WhatsApp Number (with country code, no +)</label><input type="text" id="pay_wa" value="${CONFIG.whatsappNumber}"></div>
+    <div class="field"><label>Late Fine (₹)</label><input type="number" id="pay_late" value="${CONFIG.lateFee}"></div>
+    <div class="field"><label>Receipt Prefix</label><input type="text" id="pay_prefix" value="${CONFIG.receiptPrefix}"></div>
+    <div class="field">
+      <label>Enabled Payment Methods</label>
+      ${Object.keys(CONFIG.paymentMethods).map(m => `
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);text-transform:none;margin-bottom:6px;">
+          <input type="checkbox" id="pm_${m.replace(/\s/g,'')}" ${CONFIG.paymentMethods[m] ? 'checked':''}> ${m}
+        </label>`).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePaymentSettings()">Save</button>
+    </div>
+  `);
+}
+function savePaymentSettings(){
+  CONFIG.whatsappNumber = document.getElementById('pay_wa').value.replace(/\D/g,'') || CONFIG.whatsappNumber;
+  CONFIG.lateFee = parseFloat(document.getElementById('pay_late').value) || 0;
+  CONFIG.receiptPrefix = document.getElementById('pay_prefix').value.trim() || 'RCPT';
+  Object.keys(CONFIG.paymentMethods).forEach(m => {
+    const box = document.getElementById('pm_'+m.replace(/\s/g,''));
+    if(box) CONFIG.paymentMethods[m] = box.checked;
+  });
+  persist('settings', 'global', { whatsappNumber:CONFIG.whatsappNumber, lateFee:CONFIG.lateFee, receiptPrefix:CONFIG.receiptPrefix, paymentMethods:CONFIG.paymentMethods });
+  logActivity('Admin', 'Updated payment settings', 'all');
+  closeModal();
+  renderSettings();
+}
+async function submitChangePassword(){
+  const pass = document.getElementById('newPassField').value;
+  if(pass.length < 6){ alert('Password must be at least 6 characters'); return; }
+  try{
+    await auth.currentUser.updatePassword(pass);
+    alert('✅ Password changed successfully.');
+  }catch(err){
+    alert('Failed: ' + err.message + '\n\n(For security, Firebase sometimes requires a fresh login — please log out, log back in, and try again immediately.)');
+  }
+}
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+function triggerInstallPrompt(){
+  if(!deferredInstallPrompt){
+    alert('Install prompt is not available right now — try the "Add to Home Screen" or "Install App" option in your browser menu. (Look for a ⊕ icon in the Chrome/Edge address bar.)');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt = null;
+}
+
+// ---------- MODAL HELPERS ----------
+function openModal(html){
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function renderDashboard(){
+  const d = DEMO_DATA[currentBranch];
+  const main = document.getElementById('mainContent');
+  const branchLabel = currentBranch === 'all' ? 'All Branches' : CONFIG.branches[currentBranch].name;
+
+  main.innerHTML = `
+    <div class="page-header">
+      <h2>Dashboard — ${branchLabel}</h2>
+      <span class="date-tag">${new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Total Students</div><div class="value">${d.students}</div><div class="sub">B1: ${d.b1} · B2: ${d.b2}</div></div>
+      <div class="stat-card"><div class="label">Today's Attendance</div><div class="value">${d.attendanceToday}</div></div>
+      <div class="stat-card"><div class="label">Teachers</div><div class="value">${d.teachers}</div></div>
+      <div class="stat-card"><div class="label">Active Batches</div><div class="value">${d.activeBatches}</div><div class="sub">${d.todayClasses} classes today</div></div>
+      <div class="stat-card"><div class="label">Today's Collection</div><div class="value">₹${d.todayCollection.toLocaleString('en-IN')}</div></div>
+      <div class="stat-card crimson"><div class="label">Pending Fees</div><div class="value">₹${d.pendingFees.toLocaleString('en-IN')}</div></div>
+      <div class="stat-card"><div class="label">Monthly Revenue</div><div class="value">₹${(d.monthRevenue/1000).toFixed(0)}k</div></div>
+      <div class="stat-card"><div class="label">Net Income (Month)</div><div class="value">₹${((d.monthRevenue-d.monthExpense)/1000).toFixed(0)}k</div><div class="sub">Exp: ₹${(d.monthExpense/1000).toFixed(0)}k</div></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Recent Activity</h3>
+      ${ACTIVITY.map(a => `
+        <div class="activity-row">
+          <span><span class="who">${a.who}:</span> ${a.what}</span>
+          <span class="when">${a.when}</span>
+        </div>`).join('')}
+    </div>
+  `;
+}
+
+// ===================== PWA: SERVICE WORKER REGISTRATION =====================
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(err => console.log('SW register failed:', err));
+  });
+}
+</script>
+</body>
+</html>

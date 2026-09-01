@@ -1,0 +1,206 @@
+rules_version = '2';
+
+// ============================================================
+// Manju Classes — Firestore Security Rules
+// Branch-wise isolation + role-based access
+//
+// Requires a "users" collection: users/{uid} => { role, branch, name }
+//   role   : "admin" | "teacher" | "student" | "parent"
+//   branch : "b1" | "b2" | "all"
+//     - Super Admin  => role: "admin", branch: "all"  (sees both branches)
+//     - Branch Admin => role: "admin", branch: "b1" or "b2" (sees ONLY that branch)
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function role() {
+      return isSignedIn() ? userDoc().role : null;
+    }
+
+    function myBranch() {
+      return isSignedIn() ? userDoc().branch : null;
+    }
+
+    function isSuperAdmin() {
+      return role() == 'admin' && myBranch() == 'all';
+    }
+
+    function isBranchAdmin() {
+      return role() == 'admin' && myBranch() != 'all';
+    }
+
+    function isAnyAdmin() {
+      return role() == 'admin';
+    }
+
+    function isTeacher() {
+      return role() == 'teacher';
+    }
+
+    // Read access to a record belonging to `branchId`:
+    // Super Admin -> always. Branch Admin/Teacher/Student/Parent -> only their own branch.
+    function canAccessBranch(branchId) {
+      return isSuperAdmin() || myBranch() == branchId;
+    }
+
+    // ---------- users (profile lookup only; login-credential creation happens via secondary auth app) ----------
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAnyAdmin());
+      // Branch Admin can only create logins scoped to their own branch (or 'all' is blocked for them).
+      allow create: if isSuperAdmin()
+                    || (isBranchAdmin() && request.resource.data.branch == myBranch())
+                    || (isTeacher() && request.resource.data.branch == myBranch());
+      allow update, delete: if isSuperAdmin() || (isBranchAdmin() && resource.data.branch == myBranch());
+    }
+
+    // ---------- students ----------
+    match /students/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+      allow delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- teachers ----------
+    match /teachers/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- enquiries (admissions pipeline — staff only) ----------
+    match /enquiries/{id} {
+      allow read: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- batches ----------
+    match /batches/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- timetable ----------
+    match /timetable/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- attendance ----------
+    match /attendance/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+      allow delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- homework ----------
+    match /homework/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- study material ----------
+    match /material/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- FINANCIAL DATA — admin only, strictly branch-separated ----------
+    // Branch 1 and Branch 2 payments/expenses/salary must NEVER be readable/writable
+    // across branches. Super Admin (branch:'all') is the only role that sees both.
+    match /payments/{id} {
+      allow read: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+    match /expenses/{id} {
+      allow read: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+    match /salaries/{id} {
+      allow read: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- tests & results ----------
+    match /tests/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+    }
+    match /results/{id} {
+      allow read: if isSignedIn() && canAccessBranch(resource.data.branch);
+      allow create: if (isAnyAdmin() || isTeacher()) && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if (isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- notifications ----------
+    match /notifications/{id} {
+      allow read: if isSignedIn();
+      allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
+      allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+    }
+
+    // ---------- activity log — readable by Super Admin only; Branch Admin sees their own branch ----------
+    match /activityLog/{id} {
+      allow read: if isAnyAdmin() && canAccessBranch(resource.data.branch);
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // ---------- settings — Super Admin only (Branch Management etc must not be editable by Branch Admin) ----------
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ---------- fcmTokens — push notification device tokens ----------
+    // Har user sirf apna khud ka token likh sakta hai. Padhne ki zaroorat client se
+    // kabhi nahi hoti — sirf Netlify Function (Admin SDK) padhta hai, jo yeh rules
+    // bypass karta hai (privileged server access).
+    match /fcmTokens/{uid} {
+      allow read: if false;
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- studentPhotos — profile photo, kept in its own collection so it ----------
+    // NEVER gets exposed by the broader /students read rule. Sirf Admin, Teacher
+    // (dono apni branch ke) aur khud wo student (apna hi photo) dekh sakte hain —
+    // dusre students ya parents ko kabhi nahi.
+    function myStudentId() {
+      return isSignedIn() ? userDoc().studentId : null;
+    }
+    match /studentPhotos/{studentId} {
+      allow read: if isSignedIn() && (
+        myStudentId() == studentId ||
+        ((isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch))
+      );
+      allow write: if isSignedIn() && (
+        (role() == 'student' && myStudentId() == studentId && request.resource.data.branch == myBranch()) ||
+        (isAnyAdmin() && canAccessBranch(request.resource.data.branch))
+      );
+    }
+
+    // Default deny for anything not listed above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
