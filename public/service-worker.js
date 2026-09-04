@@ -1,5 +1,5 @@
 const CACHE_NAME = 'manju-erp-v1';
-const APP_SHELL = ['./', './index.html', './receipt.html', './manifest.json', './icon.svg'];
+const APP_SHELL = ['./', './index.html', './receipt.html', './manifest.json', './icon-192.png', './icon-512.png', './logo-emblem.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

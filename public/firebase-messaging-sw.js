@@ -24,8 +24,8 @@ messaging.onBackgroundMessage((payload) => {
   const title = (payload.notification && payload.notification.title) || 'Manju Classes';
   const options = {
     body: (payload.notification && payload.notification.body) || '',
-    icon: './icon.svg',
-    badge: './icon.svg',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
     data: payload.data || {}
   };
   self.registration.showNotification(title, options);

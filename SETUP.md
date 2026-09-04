@@ -215,3 +215,39 @@ Ek baar aapne real Firebase project connect kar diya (firebaseConfig bhar diya, 
 3. Netlify Dashboard → **Functions** tab mein bhi invocations count dekh sakte hain (free tier: 125,000/month).
 
 Sab steps pass ho jaayein to app production-ready hai — asli students/teachers/parents ko login credentials generate karke share kar sakte hain.
+
+## 13. Recent Fixes & Additions (this update)
+1. **Refresh (F5) logout bug fixed** — session ab properly persist hoti hai. Login karne ke baad page refresh karne se ab dobara login screen pe nahi jayenge.
+2. **Native browser popups hata diye** — saare "site says..." alert/confirm boxes ki jagah ab ek clean in-app toast (top-right notification) aur custom confirm dialog use hote hain.
+3. **Missing Edit buttons fix kiye** — Students, Teachers, Batches, Payments mein pehle sirf "Add" tha, "Edit" tha hi nahi. Ab sabme Edit hai.
+4. **Delete button har jagah add kiya** — Students, Teachers, Batches, Homework, Study Material, Payments, Expenses, Salaries, Tests, Timetable slots, Notifications, Enquiries — sabko delete kar sakte hain ab (confirmation ke saath, accidental delete se bachne ke liye).
+5. **Dummy/sample data poori tarah hata di** — app ab khaali start hota hai, jab tak aap khud data add na karein. Dashboard bhi ab real data se calculate hota hai (Total Students, Active Teachers, Pending Fees, Today's Attendance).
+6. **Push notification permission bug fix** — pehle "Enable Notifications" button sirf Admin ko Settings mein dikhta tha, Teacher/Student/Parent ke paas koi tarika hi nahi tha. Ab top bar mein ek **🔔 bell icon sabko** dikhta hai — usse koi bhi role notifications on/off kar sakta hai. Bell hara ho jaata hai jab enabled ho.
+7. Login page ka wording aur baaki bacha hua Hinglish text clean kiya.
+
+⚠️ **Deploy karne ke baad**: agar aapke paas pehle se koi test/demo data Firestore mein bhara hua tha, wo waisa hi rahega (yeh update sirf app ke code se hardcoded dummy data hata hai, aapke Firestore database ko touch nahi karta). Agar aap Firestore se bhi purana test data hatana chahte hain, Firebase Console → Firestore Database mein jaake manually delete kar sakte hain, ya ab app ke andar se hi har record ke "🗑️ Delete" button se ek-ek karke hata sakte hain.
+
+## 14. App se Delete karne par Firestore se bhi turant delete hota hai
+Har "🗑️ Delete" button (Students, Teachers, Batches, Payments, Homework, Material, Expenses, Salaries, Tests, Timetable, Notifications, Enquiries — sabme) ab is order mein kaam karta hai:
+1. Pehle Firestore se delete try hota hai
+2. Wahi successful ho, tabhi screen se hataya jaata hai
+3. Agar Firestore delete fail ho (jaise internet chala jaye), ek red toast dikhega aur item screen pe hi rahega — accidental "delete dikha lekin data wapas aa gaya" wali confusion ab nahi hogi
+
+## 15. Real Logo + Icons
+Aapka bheja hua Manju Classes logo ab poori app mein use ho raha hai:
+- Login screen ka gol badge, sidebar/topbar ka chhota icon
+- PWA install icon (home screen pe yahi logo dikhega)
+- Naye icon files: `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (Android ke liye), `apple-touch-icon.png` (iPhone ke liye), `favicon.png`
+- Purani generic "MC" text-badge aur SVG icon hata di gayi
+
+## 16. PWA Install Fix — ⚠️ Zaroori: sirf deployed URL pe kaam karega
+Pehle icon SVG format mein tha jo Apple/iOS aur kai Android checks mein properly kaam nahi karta — ab standard PNG sizes use ho rahi hain, jo installability requirements poori karti hain.
+**Lekin sabse zaroori baat**: PWA install (aur push notifications, dono) sirf **HTTPS pe deployed site** (jaise `https://yoursite.netlify.app`) par kaam karte hain — agar aap file ko seedha double-click karke browser mein khol rahe hain (`file:///C:/Users/.../index.html` jaisa URL address bar mein dikhega), to browser install feature ko jaan-boojhkar disable rakhta hai (yeh security requirement hai, humara bug nahi). Install test karne ke liye hamesha Netlify wali asli URL use karein.
+
+## 17. Dashboard ab role ke hisaab se alag hai
+Pehle Admin, Teacher, aur Student — sabko EK JAISA dashboard dikhta tha, jisme institute ka poora financial data (Today's Collection, Total Revenue, etc.) sabko dikh jaata tha. Ab teen alag dashboards hain:
+- **Admin**: poora institute-wide data — students, teachers, pending fees, collections, revenue, net income
+- **Teacher**: sirf apni assigned batches, apne students, aaj ki attendance, apna homework/tests count — koi financial data nahi
+- **Student/Parent**: sirf apna khud ka fee due, apni attendance %, apna homework/tests — kisi aur ka ya institute ka data bilkul nahi
+
+Isi tarah **Fees section** bhi ab role-aware hai: Student/Parent ko sirf apni khud ki payment history dikhti hai (poori branch ka ledger nahi), aur unhe "Record Payment"/"Edit"/"Delete" jaisे admin-only buttons bhi nahi dikhte.

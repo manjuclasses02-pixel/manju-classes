@@ -80,6 +80,7 @@ function render(){
     <div class="row"><span class="k">Receipt No.</span><span class="v">${r.receiptNo || '-'}</span></div>
     <div class="row"><span class="k">Date</span><span class="v">${r.date || '-'}</span></div>
     <div class="row"><span class="k">Student</span><span class="v">${r.student || '-'} (${r.studentId || '-'})</span></div>
+    ${r.admissionDate ? `<div class="row"><span class="k">Date of Admission</span><span class="v">${r.admissionDate}</span></div>` : ''}
     <div class="row"><span class="k">Fee Month</span><span class="v">${r.month || '-'}</span></div>
     <div class="row"><span class="k">Amount</span><span class="v">₹${r.amount ?? 0}</span></div>
     <div class="row"><span class="k">Discount</span><span class="v">₹${r.discount ?? 0}</span></div>
