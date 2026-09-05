@@ -781,7 +781,7 @@ function showConfirm(message, okLabel = 'Delete'){
   // 👉 Firebase Console → Project Settings → General → Your apps → SDK setup → paste config here.
   // Jab tak yeh khaali/placeholder hai, app DEMO_MODE mein chalega (local mock data, koi backend nahi).
   const firebaseConfig = {
-     apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
+    apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
   authDomain: "manju-classes.firebaseapp.com",
   projectId: "manju-classes",
   storageBucket: "manju-classes.firebasestorage.app",
@@ -1454,7 +1454,7 @@ function openEditStudent(id){
     </div>
   `);
 }
-function saveEditStudent(id){
+async function saveEditStudent(id){
   const s = STUDENTS.find(x=>x.id===id);
   if(!s) return;
   const name = document.getElementById('ef_name').value.trim();
@@ -1467,14 +1467,15 @@ function saveEditStudent(id){
   s.batch = document.getElementById('ef_batch').value.trim() || 'Unassigned';
   s.status = document.getElementById('ef_status').value;
   s.feeDue = parseFloat(document.getElementById('ef_feedue').value) || 0;
-  s.admissionDate = document.getElementById('ef_admission').value || s.admissionDate;
+  s.admissionDate = document.getElementById('ef_admission').value || s.admissionDate || '';
   // Send only the plain student fields — never the whole live object, since STUDENTS
   // records also carry a runtime-only `.photo` (hydrated from the separate
   // studentPhotos collection) that must never be written back into "students".
-  persist('students', s.id, {
+  const ok = await persist('students', s.id, {
     name: s.name, father: s.father, cls: s.cls, branch: s.branch, phone: s.phone,
     batch: s.batch, status: s.status, feeDue: s.feeDue, admissionDate: s.admissionDate
   });
+  if(!ok) return; // persist() already showed the error toast — keep the modal open so nothing is lost
   logActivity('Admin', `Updated student details — ${s.name} (${s.id})`, s.branch);
   showToast('Student details updated', 'success');
   closeModal();
@@ -1788,7 +1789,7 @@ function openEditTeacher(id){
     </div>
   `);
 }
-function saveEditTeacher(id){
+async function saveEditTeacher(id){
   const t = TEACHERS.find(x=>x.id===id);
   if(!t) return;
   const name = document.getElementById('et_name').value.trim();
@@ -1798,11 +1799,12 @@ function saveEditTeacher(id){
   t.phone = document.getElementById('et_phone').value.trim() || '-';
   t.branch = document.getElementById('et_branch').value;
   t.status = document.getElementById('et_status').value;
-  t.joined = document.getElementById('et_joined').value || t.joined;
-  persist('teachers', t.id, {
+  t.joined = document.getElementById('et_joined').value || t.joined || '';
+  const ok = await persist('teachers', t.id, {
     name: t.name, subj: t.subj, phone: t.phone, branch: t.branch,
     status: t.status, joined: t.joined, batches: t.batches || 0
   });
+  if(!ok) return;
   logActivity('Admin', `Updated teacher details — ${t.name} (${t.id})`, t.branch);
   showToast('Teacher details updated', 'success');
   closeModal();
@@ -1949,7 +1951,7 @@ function openEditBatch(id){
     </div>
   `);
 }
-function saveEditBatch(id){
+async function saveEditBatch(id){
   const b = BATCHES.find(x=>x.id===id);
   if(!b) return;
   const name = document.getElementById('eb_name').value.trim();
@@ -1961,7 +1963,8 @@ function saveEditBatch(id){
   b.days = document.getElementById('eb_days').value.trim() || 'Mon-Sat';
   b.max = parseInt(document.getElementById('eb_max').value) || b.max;
   b.branch = document.getElementById('eb_branch').value;
-  persist('batches', b.id, b);
+  const ok = await persist('batches', b.id, b);
+  if(!ok) return;
   logActivity('Admin', `Updated batch — ${b.name}`, b.branch);
   showToast('Batch updated', 'success');
   closeModal();
@@ -2239,7 +2242,7 @@ function openEditHomework(id){
     </div>
   `);
 }
-function saveEditHomework(id){
+async function saveEditHomework(id){
   const h = HOMEWORK.find(x=>x.id===id);
   if(!h) return;
   const title = document.getElementById('eh_title').value.trim();
@@ -2251,7 +2254,8 @@ function saveEditHomework(id){
   h.due = document.getElementById('eh_due').value.trim() || '-';
   h.branch = document.getElementById('eh_branch').value;
   h.desc = document.getElementById('eh_desc').value.trim();
-  persist('homework', h.id, h);
+  const ok = await persist('homework', h.id, h);
+  if(!ok) return;
   logActivity('Admin', `Updated homework — ${h.title}`, h.branch);
   showToast('Homework updated', 'success');
   closeModal();
@@ -2553,7 +2557,7 @@ function openEditPaymentRecord(paymentId){
     </div>
   `);
 }
-function saveEditPaymentRecord(paymentId){
+async function saveEditPaymentRecord(paymentId){
   const p = PAYMENTS.find(x=>x.id===paymentId);
   if(!p) return;
   const amount = parseFloat(document.getElementById('ep_amount').value) || 0;
@@ -2566,7 +2570,8 @@ function saveEditPaymentRecord(paymentId){
   p.method = document.getElementById('ep_method').value;
   p.date = document.getElementById('ep_date').value || p.date;
   p.total = amount - discount + fine;
-  persist('payments', p.id, p);
+  const ok = await persist('payments', p.id, p);
+  if(!ok) return;
   logActivity('Admin', `Updated payment record — ${p.receiptNo} (${p.studentName})`, p.branch);
   showToast('Payment record updated', 'success');
   closeModal();
