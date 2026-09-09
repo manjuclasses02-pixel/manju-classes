@@ -9,12 +9,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
+  authDomain: "manju-classes.firebaseapp.com",
+  projectId: "manju-classes",
+  storageBucket: "manju-classes.firebasestorage.app",
+  messagingSenderId: "731543724576",
+  appId: "1:731543724576:web:8eb00a315d2c6e2b0d9245"
 });
 
 const messaging = firebase.messaging();

@@ -251,3 +251,33 @@ Pehle Admin, Teacher, aur Student — sabko EK JAISA dashboard dikhta tha, jisme
 - **Student/Parent**: sirf apna khud ka fee due, apni attendance %, apna homework/tests — kisi aur ka ya institute ka data bilkul nahi
 
 Isi tarah **Fees section** bhi ab role-aware hai: Student/Parent ko sirf apni khud ki payment history dikhti hai (poori branch ka ledger nahi), aur unhe "Record Payment"/"Edit"/"Delete" jaisे admin-only buttons bhi nahi dikhte.
+
+## 18. Student/Parent Login — ab Phone Number se (Email nahi)
+Student aur Parent ka login ab **phone number** se hota hai, email se nahi (Teacher/Admin waise hi email se rehta hai, unke liye nahi badla).
+- Admin jab "Generate Login" dabata hai, ab email ki jagah **phone number** poochega — wahi unki Login ID banegi.
+- **Ek hi phone number se 2-4 students ka login** ban sakta hai (siblings ke liye) — jab wo login karenge, agar ek se zyada account milein, ek chhota sa "Kaun login kar raha hai?" wala popup dikhega jisme naam se select karna hoga.
+- Login banate hi **WhatsApp automatically khul jaata hai** ek Welcome message ke saath — jisme Login ID (phone), Password, Student ka naam/ID/class/batch/branch, aur ek shareable "Welcome" link hota hai jo student/parent kabhi bhi dobara khol sakta hai apne details dekhne ke liye.
+- Password random generate hota hai, lekin chahe to Generate Login screen pe khud bhi type kar sakte hain.
+
+⚠️ Naya `phoneDirectory` collection add hui hai (firestore.rules mein already shamil hai) — yeh sirf naam+role+internal-login-handle store karta hai (kabhi password nahi), aur login screen ko yeh dhoondhne mein madad karta hai ki ek phone number se kaun se accounts bane hain — login se PEHLE hi yeh check karna padta hai, isliye yeh collection bina sign-in ke bhi read ho sakti hai (lekin likhna sirf Admin kar sakta hai).
+
+## 19. Fee Due — ab Cumulative aur Automatic
+- Student add karte waqt ab **Monthly Fee** bhi ek saath set hoti hai.
+- Partial payment ka hisaab sahi rehta hai: fee ₹500 hai, ₹400 pay kiya, to ₹100 due reh jaata hai.
+- **Har naye mahine automatically** us mahine ki fee purane due mein add ho jaati hai (₹100 purana + ₹500 naya mahina = ₹600 total due) — yeh Admin ke login karte hi background mein check hota hai, kisi extra button ki zaroorat nahi.
+- Dashboard mein ab "Recent Activity" ki jagah **"⏳ Due in Next 3 Days"** aur **"🔴 Already Overdue"** do alag sections hain, jo har student ke "Fee Due Day" (admission date se set hota hai, Edit Student se badal bhi sakte hain) ke hisaab se calculate hote hain.
+- Receipt (in-app, print, aur WhatsApp link — teeno) mein ab "Remaining Due" bhi dikhta hai.
+
+## 20. File Upload — Homework aur Study Material
+Ab dono jagah **real file upload** hai (pehle sirf "type" dropdown tha, koi actual file select nahi hoti thi):
+- Photo automatically compress ho jaati hai (chhoti size, kam storage)
+- PDF seedha upload hoti hai, lekin ek size limit hai (~900KB) — Firestore documents 1MB se zyada nahi ho sakte, isliye bahut badi PDF/photo allow nahi hogi (error message dikhega agar file badi ho)
+- Study Material mein "Video Link" type select karne par file ki jagah ek URL field aa jaata hai (YouTube/Drive link ke liye)
+
+## 21. Is Round Ke Bug Fixes (line-by-line audit)
+1. **Bada Payment bug** — payment save hote waqt date galat format mein save ho rahi thi ("8 Sep" jaisi), jabki Dashboard "2026-09-08" format se match karta tha — isliye **"Today's Collection" hamesha ₹0 dikhta tha**, chahe kitni bhi payment record ho. Ab date sahi format mein save hoti hai, display ke liye alag se friendly format mein dikhayi jaati hai (jaise "8 Sep 2026"). Purane records jo galat format mein save ho chuke hain, unke liye display mein koi dikkat nahi aayegi (bas unki Dashboard-count thodi der se update hogi jab tak naya payment record na ho).
+2. **Notifications** mein bacha hua Hinglish text (Netlify function ke error/note messages, jo seedha app mein dikhte hain) English mein kiya.
+3. Notification broadcast ka ek warning-type message galti se "error" (laal) rang mein dikhta tha, jabki actually WhatsApp successfully khul chuka hota tha — ab sahi "info" type mein hai.
+4. Do jagah SETUP.md ka galat section-number reference tha ("Phase 2" ki jagah "Section 9" hona chahiye tha) — fix kiya.
+5. Settings mein "Version: Phase 1–7 build" jaisa confusing internal label tha — ab simple "1.0" hai.
+6. **Absent-alert WhatsApp feature verify kiya** — yeh pehle se bana hua tha (Attendance save karne par automatically absentees ki list + "📱 Alert" button dikhta hai), lekin `saveAttendance()` crash hone ki wajah se pehle kabhi chalta hi nahi tha. Ab crash fix ho chuka hai, isliye yeh feature turant kaam karega.

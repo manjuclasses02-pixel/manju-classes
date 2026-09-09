@@ -50,6 +50,11 @@
   </div>
 
 <script>
+function formatDateNice(iso){
+  if(!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '-';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+}
 function decodeReceipt(){
   try{
     const hash = window.location.hash.replace(/^#/, '');
@@ -73,12 +78,13 @@ function render(){
   }
   card.innerHTML = `
     <div class="head">
+      <img src="logo-emblem.png" alt="Manju Classes" style="width:56px;height:56px;object-fit:contain;margin-bottom:6px;">
       <div class="name">${r.inst || 'Manju Classes'}</div>
       <div class="addr">${r.branchName || ''}${r.addr ? ' — ' + r.addr : ''}</div>
       <div class="paid-tag">✅ Payment Received</div>
     </div>
     <div class="row"><span class="k">Receipt No.</span><span class="v">${r.receiptNo || '-'}</span></div>
-    <div class="row"><span class="k">Date</span><span class="v">${r.date || '-'}</span></div>
+    <div class="row"><span class="k">Date</span><span class="v">${formatDateNice(r.date)}</span></div>
     <div class="row"><span class="k">Student</span><span class="v">${r.student || '-'} (${r.studentId || '-'})</span></div>
     ${r.admissionDate ? `<div class="row"><span class="k">Date of Admission</span><span class="v">${r.admissionDate}</span></div>` : ''}
     <div class="row"><span class="k">Fee Month</span><span class="v">${r.month || '-'}</span></div>
@@ -86,6 +92,7 @@ function render(){
     <div class="row"><span class="k">Discount</span><span class="v">₹${r.discount ?? 0}</span></div>
     <div class="row"><span class="k">Fine</span><span class="v">₹${r.fine ?? 0}</span></div>
     <div class="row total-row"><span class="k">Total Paid</span><span class="v">₹${r.total ?? 0}</span></div>
+    ${r.remainingDue != null ? `<div class="row"><span class="k">Remaining Due</span><span class="v" style="color:${r.remainingDue>0?'#b3122b':'#0f9d58'}">${r.remainingDue>0 ? '₹'+r.remainingDue : 'Paid up'}</span></div>` : ''}
     <div class="row"><span class="k">Payment Method</span><span class="v">${r.method || '-'}</span></div>
     <div class="row"><span class="k">Collected By</span><span class="v">${r.collectedBy || '-'}</span></div>
     <div class="foot">Thank you for choosing ${r.inst || 'Manju Classes'}.<br>This is a digitally generated receipt.</div>

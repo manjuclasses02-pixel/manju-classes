@@ -32,14 +32,14 @@ exports.handler = async (event) => {
 
   const { title, message, branch, audience } = body;
   if (!title || !message) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'title aur message dono zaroori hain' }) };
+    return { statusCode: 400, body: JSON.stringify({ error: 'title and message are both required' }) };
   }
 
   try {
     const db = admin.firestore();
     const roles = audience === 'Teachers' ? ['teacher']
       : audience === 'Parents' ? ['parent']
-      : ['student', 'parent']; // "All Students" / "Branch 1" / "Branch 2" — student aur unke parent, dono ko pahunche
+      : ['student', 'parent']; // "All Students" / "Branch 1" / "Branch 2" — reaches both students and their parents
     const snap = await db.collection('fcmTokens').where('role', 'in', roles).get();
 
     const tokens = [];
@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     if (!tokens.length) {
       return {
         statusCode: 200,
-        body: JSON.stringify({ successCount: 0, failureCount: 0, note: 'Is audience ke liye koi registered device nahi mila (students ne abhi tak notifications enable nahi ki hain).' })
+        body: JSON.stringify({ successCount: 0, failureCount: 0, note: 'No registered devices found for this audience (they may not have enabled notifications yet).' })
       };
     }
 

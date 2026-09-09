@@ -72,12 +72,12 @@
     width:78px;height:78px;
     margin:0 auto 14px;
     border-radius:50%;
-    background:var(--navy);
+    background:var(--paper);
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 12px rgba(0,0,0,0.25), inset 0 0 0 3px var(--paper);
+    box-shadow:0 4px 12px rgba(0,0,0,0.25), inset 0 0 0 3px var(--gold-soft);
     overflow:hidden;
   }
-  .brand-seal img{ width:74%; height:74%; object-fit:contain; }
+  .brand-seal img{ width:82%; height:82%; object-fit:contain; }
   .login-card h1{
     text-align:center;
     font-size:23px;
@@ -601,7 +601,7 @@
 
   /* ===== AUTH LOADING SCREEN ===== */
   #auth-loading-screen{
-    position:fixed; inset:0; background:var(--cream); z-index:9997;
+    position:fixed; inset:0; background:var(--paper); z-index:9997;
     display:flex; align-items:center; justify-content:center;
   }
   .auth-loading-inner{ text-align:center; }
@@ -663,7 +663,7 @@
 
     <div id="loginFormArea" style="display:none;">
       <div class="field">
-        <label>Login Email / User ID</label>
+        <label id="loginIdLabel">Login Email / User ID</label>
         <input type="text" id="loginId" placeholder="e.g. owner@manjuclasses.in">
       </div>
       <div class="field">
@@ -681,7 +681,9 @@
   <div class="topbar">
     <div class="topbar-left">
       <div class="hamburger" onclick="toggleSidebar()"><span></span></div>
-      <img src="logo-emblem.png" alt="Manju Classes" style="width:28px;height:28px;object-fit:contain;">
+      <span style="background:var(--paper);border-radius:50%;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <img src="logo-emblem.png" alt="Manju Classes" style="width:24px;height:24px;object-fit:contain;">
+      </span>
       <div class="topbar-title">Manju Classes<small id="roleLabel">Admin Panel</small></div>
     </div>
     <div class="branch-switch">
@@ -781,7 +783,7 @@ function showConfirm(message, okLabel = 'Delete'){
   // 👉 Firebase Console → Project Settings → General → Your apps → SDK setup → paste config here.
   // Jab tak yeh khaali/placeholder hai, app DEMO_MODE mein chalega (local mock data, koi backend nahi).
   const firebaseConfig = {
-    apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
+   apiKey: "AIzaSyBKEe3RRYV0uxpv6J9MXd4q3HuxJg5ssak",
   authDomain: "manju-classes.firebaseapp.com",
   projectId: "manju-classes",
   storageBucket: "manju-classes.firebasestorage.app",
@@ -837,7 +839,14 @@ function applyConfigToUI(){
 // messages that specific contact; otherwise falls back to the institute's WhatsApp number.
 function openWhatsApp(phone, message){
   const digits = (phone && phone.replace(/\D/g,'').length >= 10) ? phone.replace(/\D/g,'') : CONFIG.whatsappNumber;
-  window.open(`https://wa.me/${digits}?text=${encodeURIComponent(message)}`, '_blank');
+  const url = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+  const win = window.open(url, '_blank');
+  if(!win || win.closed || typeof win.closed === 'undefined'){
+    // Popup blocked — very common on mobile browsers, and window.open() fails
+    // completely silently (no error, nothing thrown) when this happens.
+    // Falling back to a direct same-tab navigation always works.
+    window.location.href = url;
+  }
 }
 
 // Builds a self-contained, unique, shareable link for a payment receipt.
@@ -851,6 +860,7 @@ function buildReceiptLink(p){
     inst: CONFIG.instituteName, addr: branch.address, branchName: branch.name,
     receiptNo: p.receiptNo, date: p.date, student: p.studentName, studentId: p.studentId,
     admissionDate: stu ? stu.admissionDate : null,
+    remainingDue: stu ? stu.feeDue : null,
     month: p.feeMonth, amount: p.amount, discount: p.discount, fine: p.fine, total: p.total,
     method: p.method, collectedBy: p.collectedBy
   };
@@ -949,9 +959,21 @@ async function persist(collectionName, docId, data){
 async function loadCollection(collectionName){
   if(!FIREBASE_ENABLED) return null;
   try{
-    const snap = await db.collection(collectionName).get();
+    // Super Admin (branch === 'all') sees everything; every other role's query is
+    // scoped server-side to their own branch (or 'all'-audience records like
+    // notifices sent to everyone) — never fetch the other branch's data at all,
+    // rather than trusting client-side filtering alone.
+    let ref = db.collection(collectionName);
+    if(currentUserBranch !== 'all'){
+      ref = ref.where('branch', 'in', [currentUserBranch, 'all']);
+    }
+    const snap = await ref.get();
     return snap.docs.map(d => ({ id:d.id, ...d.data() }));
-  }catch(err){ console.error("load error:", collectionName, err); return null; }
+  }catch(err){
+    console.error("load error:", collectionName, err);
+    showToast(`Could not load "${collectionName}": ${err.message}`, 'error');
+    return null;
+  }
 }
 async function hydrateFromFirestore(){
   if(!FIREBASE_ENABLED) return;
@@ -963,21 +985,21 @@ async function hydrateFromFirestore(){
     loadCollection('tests'), loadCollection('results'),
     loadCollection('notifications'), loadCollection('activityLog')
   ]);
-  if(s && s.length) STUDENTS = s;
-  if(t && t.length) TEACHERS = t;
-  if(e && e.length) ENQUIRIES = e;
-  if(b && b.length) BATCHES = b;
+  if(s) STUDENTS = s;
+  if(t) TEACHERS = t;
+  if(e) ENQUIRIES = e;
+  if(b) BATCHES = b;
   if(a) ATTENDANCE = a;
   if(h) HOMEWORK = h;
   if(m) MATERIAL = m;
-  if(tt && tt.length) TIMETABLE = tt;
+  if(tt) TIMETABLE = tt;
   if(pay) PAYMENTS = pay;
   if(exp) EXPENSES = exp;
   if(sal) SALARIES = sal;
-  if(tst && tst.length) TESTS = tst;
+  if(tst) TESTS = tst;
   if(res) RESULTS = res;
-  if(notif && notif.length) NOTIFICATIONS = notif;
-  if(log && log.length) ACTIVITY = log.sort((a,b)=> (b.id||'').localeCompare(a.id||''));
+  if(notif) NOTIFICATIONS = notif;
+  if(log) ACTIVITY = log.sort((a,b)=> (b.id||'').localeCompare(a.id||''));
   try{
     const settingsDoc = await db.collection('settings').doc('global').get();
     if(settingsDoc.exists){ Object.assign(CONFIG, settingsDoc.data()); applyConfigToUI(); }
@@ -1005,6 +1027,27 @@ async function hydrateFromFirestore(){
       });
     }
   }catch(err){ console.error('Photo hydrate error:', err); }
+}
+
+// ===================== AUTOMATIC MONTHLY FEE DUE =====================
+// Jab bhi Admin login karta hai, yeh check karta hai ki kisi student ka is mahine ka
+// fee abhi tak due list mein add nahi hua — agar nahi hua to unki monthlyFee unke
+// existing feeDue mein add ho jaati hai (purana balance + naya mahina, dono jud jaate
+// hain — jaisa aapne bataya: ₹100 purana due + ₹500 naya mahina = ₹600 total due).
+async function applyMonthlyFeeDue(){
+  if(currentRole !== 'admin' || !FIREBASE_ENABLED) return;
+  const nowKey = new Date().toISOString().slice(0,7); // "YYYY-MM"
+  for(const s of STUDENTS){
+    if(!s.dueDay){
+      s.dueDay = (s.admissionDate && parseInt(s.admissionDate.slice(8,10))) || 5;
+      persist('students', s.id, { dueDay: s.dueDay });
+    }
+    if(!s.monthlyFee || s.monthlyFee <= 0) continue;
+    if(s.lastFeeMonth === nowKey) continue; // is mahine ka charge already lag chuka hai
+    s.feeDue = (s.feeDue || 0) + s.monthlyFee;
+    s.lastFeeMonth = nowKey;
+    await persist('students', s.id, { feeDue: s.feeDue, lastFeeMonth: s.lastFeeMonth });
+  }
 }
 
 let ACTIVITY = [];
@@ -1117,7 +1160,18 @@ function selectLoginRole(el, role, branch){
   el.classList.add('active');
   const formArea = document.getElementById('loginFormArea');
   formArea.style.display = 'block';
-  document.getElementById('loginId').focus();
+  const idLabel = document.getElementById('loginIdLabel');
+  const idInput = document.getElementById('loginId');
+  if(role === 'student' || role === 'parent'){
+    idLabel.textContent = 'Phone Number';
+    idInput.placeholder = 'e.g. 98xxxxxxx0';
+    idInput.type = 'tel';
+  } else {
+    idLabel.textContent = 'Login Email / User ID';
+    idInput.placeholder = 'e.g. owner@manjuclasses.in';
+    idInput.type = 'text';
+  }
+  idInput.focus();
 }
 
 function updateBookNav(){
@@ -1168,11 +1222,28 @@ async function doLogin(){
   const passVal = document.getElementById('loginPass').value;
 
   if(FIREBASE_ENABLED){
-    // LIVE MODE — Firebase Email/Password auth. "Phone/User ID" field ko email ki tarah use karein
-    // (e.g. teacher ka email teacher1@manjuclasses.in), Admin Firebase Console/Auth mein account banayega.
     if(!idVal || !passVal){ showToast('Please enter both User ID and Password', 'error'); return; }
     try{
-      await auth.signInWithEmailAndPassword(idVal, passVal);
+      if(currentRole === 'student' || currentRole === 'parent'){
+        // Student/Parent login ID is a phone number — Firebase Auth needs an exact
+        // email-shaped identifier internally, so we look up which account(s) this
+        // phone number maps to first (public, unauthenticated-readable lookup).
+        const digits = idVal.replace(/\D/g,'');
+        if(digits.length < 10){ showToast('Please enter a valid 10-digit phone number', 'error'); return; }
+        const dirDoc = await db.collection('phoneDirectory').doc(digits).get();
+        if(!dirDoc.exists){ showToast('No account found for this phone number. Please check with your admin.', 'error'); return; }
+        const entries = Object.values(dirDoc.data()).filter(e => e.role === currentRole);
+        if(!entries.length){ showToast(`No ${currentRole} account found for this phone number.`, 'error'); return; }
+        let chosen = entries[0];
+        if(entries.length > 1){
+          chosen = await pickLoginEntry(entries);
+          if(!chosen) return; // cancelled by the person
+        }
+        await auth.signInWithEmailAndPassword(chosen.pseudoEmail, passVal);
+      } else {
+        // Admin/Teacher — "Phone/User ID" field is their actual email, as set up in Firebase Console.
+        await auth.signInWithEmailAndPassword(idVal, passVal);
+      }
       // Everything after a successful sign-in (loading the Firestore profile, hydrating
       // data, calling enterApp()) is handled by the onAuthStateChanged listener above —
       // that keeps a fresh login and a resumed session (F5 refresh) on the exact same path.
@@ -1190,8 +1261,26 @@ async function doLogin(){
     enterApp();
   }
 }
+// When one phone number has multiple accounts (e.g. two siblings, or a student +
+// their parent both using the family phone), let the person pick which one is
+// logging in. Resolves to the chosen {label, pseudoEmail, role} entry, or null if
+// they close the picker without choosing.
+function pickLoginEntry(entries){
+  return new Promise((resolve) => {
+    openModal(`
+      <div class="modal-header"><h3>Who is logging in?</h3><button class="modal-close" onclick="closeModal(); window._pickLoginDone(null);">✕</button></div>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">This phone number has more than one account. Please select yours:</p>
+      ${entries.map((e,i) => `<button class="btn-add" style="width:100%;margin-bottom:8px;" onclick="window._pickLoginDone(${i})">${e.label}</button>`).join('')}
+    `);
+    window._pickLoginDone = (i) => {
+      closeModal();
+      resolve(i === null ? null : entries[i]);
+      window._pickLoginDone = null;
+    };
+  });
+}
 
-function enterApp(){
+async function enterApp(){
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   const labels = { admin:"Admin Panel", teacher:"Teacher Panel", student:"Student Panel", parent:"Parent Panel" };
@@ -1212,6 +1301,7 @@ function enterApp(){
     branchSelect.disabled = false;
   }
   applyRoleVisibility();
+  await applyMonthlyFeeDue();
   renderPage('dashboard');
   updateNotifBellState();
   if(FIREBASE_ENABLED) setTimeout(() => requestNotificationPermission(true), 1200);
@@ -1291,14 +1381,14 @@ function doLogout(){
 // Role-based sidebar visibility (financial items hidden from teacher/student/parent per spec)
 function applyRoleVisibility(){
   const financeOnly = ['fees','expenses','salary','settings','reports'];
-  const adminOnly = ['teachers','enquiry','notifications'];
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const page = item.dataset.page;
     let show = true;
     if(currentRole === 'teacher' && financeOnly.includes(page)) show = false;
+    if(currentRole === 'teacher' && ['teachers','enquiry'].includes(page)) show = false;
     if((currentRole === 'student' || currentRole === 'parent') && financeOnly.includes(page) && page !== 'fees') show = false;
-    if(currentRole === 'student' && ['teachers','enquiry','batches'].includes(page)) show = false;
-    if(currentRole === 'parent' && ['teachers','enquiry','batches'].includes(page)) show = false;
+    if(currentRole === 'student' && ['teachers','enquiry','batches','students'].includes(page)) show = false;
+    if(currentRole === 'parent' && ['teachers','enquiry','batches','students'].includes(page)) show = false;
     if(currentRole !== 'admin' && page === 'settings') show = false;
     if(page === 'settings' && currentUserBranch !== 'all') show = false; // Settings = Super Admin only
     if(page === 'branchAnalytics' && !(currentRole === 'admin' && currentUserBranch === 'all')) show = false; // Branch Analytics = Super Admin only
@@ -1360,7 +1450,25 @@ function renderPage(page){
   `;
 }
 
-function initials(name){ return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function initials(name){ if(!name) return '?'; return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function formatDateNice(iso){
+  if(!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '-';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+}
+function ordinalSuffix(n){
+  if(n % 10 === 1 && n !== 11) return 'st';
+  if(n % 10 === 2 && n !== 12) return 'nd';
+  if(n % 10 === 3 && n !== 13) return 'rd';
+  return 'th';
+}
+function getMyTeacherRecord(){
+  return TEACHERS.find(t => t.loginEmail && auth && auth.currentUser && t.loginEmail === auth.currentUser.email) || null;
+}
+function getMyBatches(){
+  const me = getMyTeacherRecord();
+  return me ? BATCHES.filter(b => b.teacher === me.name) : BATCHES.filter(b => inBranch(b.branch));
+}
 function branchTag(b){ return b==='b1' ? '<span class="badge b1">Branch 1</span>' : '<span class="badge b2">Branch 2</span>'; }
 function inBranch(itemBranch){ return currentBranch==='all' || itemBranch===currentBranch; }
 
@@ -1368,6 +1476,28 @@ function inBranch(itemBranch){ return currentBranch==='all' || itemBranch===curr
 function renderStudents(searchTerm){
   const main = document.getElementById('mainContent');
   searchTerm = (searchTerm||'').toLowerCase();
+
+  if(currentRole === 'teacher'){
+    const myBatchNames = getMyBatches().map(b => b.name);
+    const rows = STUDENTS.filter(s => myBatchNames.includes(s.batch) && (s.name.toLowerCase().includes(searchTerm) || s.id.toLowerCase().includes(searchTerm)));
+    main.innerHTML = `
+      <div class="page-header"><h2>My Students</h2><span class="date-tag">${rows.length} shown</span></div>
+      <div class="toolbar"><input type="text" id="studentSearch" placeholder="🔍 Search name or ID..." value="${searchTerm}"></div>
+      <div id="studentList">${rows.length ? rows.map(s => `
+        <div class="list-card" style="cursor:default;">
+          <div class="list-avatar">${initials(s.name)}</div>
+          <div class="list-main">
+            <div class="name">${s.name}</div>
+            <div class="meta">${s.batch}</div>
+            <div class="list-badges">${branchTag(s.branch)}</div>
+          </div>
+        </div>`).join('') : `<div class="empty-state">No students in your assigned batches yet.</div>`}
+      </div>
+    `;
+    document.getElementById('studentSearch').addEventListener('input', (e) => renderStudents(e.target.value));
+    return;
+  }
+
   const rows = STUDENTS.filter(s => inBranch(s.branch) && (s.name.toLowerCase().includes(searchTerm) || s.id.toLowerCase().includes(searchTerm)));
 
   main.innerHTML = `
@@ -1407,17 +1537,19 @@ function viewStudent(id){
     <div class="detail-row"><span class="k">Batch</span><span class="v">${s.batch}</span></div>
     <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[s.branch].name}</span></div>
     <div class="detail-row"><span class="k">Phone</span><span class="v">${s.phone}</span></div>
+    <div class="detail-row"><span class="k">Address</span><span class="v">${s.address || '—'}</span></div>
     <div class="detail-row"><span class="k">Status</span><span class="v">${s.status}</span></div>
     <div class="detail-row"><span class="k">Fee Due</span><span class="v" style="color:${s.feeDue>0?'var(--crimson)':'var(--ok)'}">${s.feeDue>0 ? '₹'+s.feeDue : 'Paid up'}</span></div>
+    <div class="detail-row"><span class="k">Monthly Fee</span><span class="v">₹${s.monthlyFee||0}</span></div>
     <div class="detail-row"><span class="k">Date of Admission</span><span class="v">${s.admissionDate || '—'}</span></div>
-    ${s.loginEmail ? `<div class="detail-row"><span class="k">Student Login Email</span><span class="v">${s.loginEmail}</span></div>` : ''}
-    ${s.parentLoginEmail ? `<div class="detail-row"><span class="k">Parent Login Email</span><span class="v">${s.parentLoginEmail}</span></div>` : ''}
+    ${s.loginPhone ? `<div class="detail-row"><span class="k">Student Login Phone</span><span class="v">${s.loginPhone}</span></div>` : ''}
+    ${s.parentLoginPhone ? `<div class="detail-row"><span class="k">Parent Login Phone</span><span class="v">${s.parentLoginPhone}</span></div>` : ''}
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Close</button>
       <button class="btn-primary" onclick="openEditStudent('${s.id}')">✏️ Edit</button>
       <button class="btn-primary" onclick="viewPerformance('${s.id}')">📊 Performance</button>
-      <button class="btn-primary" onclick="openGenerateLogin('${s.id}')">🔑 ${s.loginEmail ? 'Reset' : 'Generate'} Student Login</button>
-      <button class="btn-primary" onclick="openGenerateParentLogin('${s.id}')">🔑 ${s.parentLoginEmail ? 'Reset' : 'Generate'} Parent Login</button>
+      <button class="btn-primary" onclick="openGenerateLogin('${s.id}')">🔑 ${s.loginPhone ? 'Reset' : 'Generate'} Student Login</button>
+      <button class="btn-primary" onclick="openGenerateParentLogin('${s.id}')">🔑 ${s.parentLoginPhone ? 'Reset' : 'Generate'} Parent Login</button>
       <button class="btn-primary" onclick="sendFeeReminder('${s.id}')">📱 Fee Reminder</button>
       <button class="btn-danger" onclick="deleteStudent('${s.id}')">🗑️ Delete Student</button>
     </div>
@@ -1446,6 +1578,9 @@ function openEditStudent(id){
         </select>
       </div>
       <div class="field"><label>Fee Due (₹)</label><input type="number" id="ef_feedue" value="${s.feeDue||0}"></div>
+      <div class="field"><label>Monthly Fee (₹)</label><input type="number" id="ef_monthlyfee" value="${s.monthlyFee||0}"></div>
+      <div class="field"><label>Fee Due Day (1-31)</label><input type="number" id="ef_dueday" min="1" max="31" value="${s.dueDay||5}"></div>
+      <div class="field full"><label>Address</label><input type="text" id="ef_address" value="${s.address||''}"></div>
       <div class="field"><label>Date of Admission</label><input type="date" id="ef_admission" value="${s.admissionDate || ''}"></div>
     </div>
     <div class="modal-actions">
@@ -1467,13 +1602,17 @@ async function saveEditStudent(id){
   s.batch = document.getElementById('ef_batch').value.trim() || 'Unassigned';
   s.status = document.getElementById('ef_status').value;
   s.feeDue = parseFloat(document.getElementById('ef_feedue').value) || 0;
+  s.monthlyFee = parseFloat(document.getElementById('ef_monthlyfee').value) || 0;
+  s.dueDay = parseInt(document.getElementById('ef_dueday').value) || s.dueDay || 5;
+  s.address = document.getElementById('ef_address').value.trim() || '-';
   s.admissionDate = document.getElementById('ef_admission').value || s.admissionDate || '';
   // Send only the plain student fields — never the whole live object, since STUDENTS
   // records also carry a runtime-only `.photo` (hydrated from the separate
   // studentPhotos collection) that must never be written back into "students".
   const ok = await persist('students', s.id, {
     name: s.name, father: s.father, cls: s.cls, branch: s.branch, phone: s.phone,
-    batch: s.batch, status: s.status, feeDue: s.feeDue, admissionDate: s.admissionDate
+    batch: s.batch, status: s.status, feeDue: s.feeDue, monthlyFee: s.monthlyFee,
+    dueDay: s.dueDay, address: s.address, admissionDate: s.admissionDate
   });
   if(!ok) return; // persist() already showed the error toast — keep the modal open so nothing is lost
   logActivity('Admin', `Updated student details — ${s.name} (${s.id})`, s.branch);
@@ -1527,46 +1666,112 @@ async function createLoginCredential(role, name, branch, email, password, extra=
     return null;
   }
 }
+// ---------- PHONE-BASED LOGIN (Student & Parent) ----------
+// Firebase Auth needs an email-shaped identifier internally, but the person only
+// ever types their phone number. We build a unique internal address from
+// phone+studentId+role+timestamp (so re-generating/"Reset" never collides with an
+// old account), and record {phone -> which accounts exist} in the public
+// "phoneDirectory" collection so the login screen can look this up BEFORE anyone
+// is signed in. Several children (or a child + their parent) can share one phone
+// number — each gets its own entry, keyed by studentId+role.
+async function createPhoneLoginCredential(role, name, branch, phone, password, extra={}){
+  if(!FIREBASE_ENABLED){
+    showToast('Please connect Firebase first (see SETUP.md). Real login credentials cannot be generated in Preview Mode.', 'error');
+    return null;
+  }
+  const digits = phone.replace(/\D/g, '');
+  if(digits.length < 10){ showToast('Please enter a valid 10-digit phone number', 'error'); return null; }
+  const key = `${extra.studentId || 'x'}_${role}`;
+  const pseudoEmail = `${digits}.${key}.${Date.now()}@manjuclasses.app`;
+  try{
+    let secondaryApp;
+    try{ secondaryApp = firebase.app('Secondary'); }
+    catch(e){ secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary'); }
+    const secAuth = secondaryApp.auth();
+    const cred = await secAuth.createUserWithEmailAndPassword(pseudoEmail, password);
+    const uid = cred.user.uid;
+    await db.collection('users').doc(uid).set({ name, role, branch, phone: digits, ...extra });
+    await db.collection('phoneDirectory').doc(digits).set({
+      [key]: { label: name, pseudoEmail, role }
+    }, { merge: true });
+    await secAuth.signOut();
+    return uid;
+  }catch(err){
+    showToast('Failed to create login: ' + err.message, 'error');
+    return null;
+  }
+}
 function openGenerateLogin(studentId){
   const s = STUDENTS.find(x=>x.id===studentId);
-  const defaultEmail = s.loginEmail || (s.id.toLowerCase().replace(/-/g,'') + '@manjuclasses.app');
+  const defaultPhone = s.loginPhone || ((s.phone && s.phone.replace(/\D/g,'').length >= 10) ? s.phone.replace(/\D/g,'') : '');
   const defaultPass = Math.random().toString(36).slice(-8);
   openModal(`
     <div class="modal-header"><h3>Generate Login — ${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="field"><label>Login Email</label><input type="text" id="gl_email" value="${defaultEmail}"></div>
+    <div class="field"><label>Phone Number (this will be the Login ID)</label><input type="text" id="gl_phone" value="${defaultPhone}" placeholder="10-digit mobile number"></div>
     <div class="field"><label>Password</label><input type="text" id="gl_pass" value="${defaultPass}"></div>
-    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">Once generated, share these credentials with the student/parent via WhatsApp or SMS. The password will never be shown again in this app, so note it down now.</p>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">This can be changed — a random one is filled in, but you can set your own. Once generated, share these credentials with the student via WhatsApp. The password will never be shown again in this app, so note it down now. If a sibling already has a login on this same phone number, that's fine — each child gets their own separate login.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary" onclick="submitGenerateLogin('${studentId}')">Create Login</button>
     </div>
   `);
 }
+function buildWelcomeLink(s, phone, password){
+  const branch = CONFIG.branches[s.branch];
+  const payload = {
+    inst: CONFIG.instituteName, branchName: branch.name,
+    student: s.name, studentId: s.id, cls: s.cls, batch: s.batch,
+    phone, password
+  };
+  const json = JSON.stringify(payload);
+  const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+  const url = new URL('welcome.html', window.location.href);
+  url.hash = 'd=' + encoded;
+  return url.href;
+}
+function sendWelcomeWhatsApp(s, phone, password){
+  const branch = CONFIG.branches[s.branch];
+  const link = buildWelcomeLink(s, phone, password);
+  const msg = `🎓 *Welcome to ${CONFIG.instituteName}!*\n\n`
+    + `Hello *${s.name}*,\n`
+    + `Your student login has been created. Here are your details:\n\n`
+    + `👤 Student ID: *${s.id}*\n`
+    + `🏫 Branch: ${branch.name}\n`
+    + `📚 Class: ${s.cls} · Batch: ${s.batch}\n\n`
+    + `🔑 *Login Details*\n`
+    + `Login ID (Phone): *${phone}*\n`
+    + `Password: *${password}*\n\n`
+    + `👉 View these details anytime:\n${link}\n\n`
+    + `Please keep your password safe. Wishing you a great learning journey!\n`
+    + `— *${CONFIG.instituteName}*`;
+  openWhatsApp(phone, msg);
+}
 async function submitGenerateLogin(studentId){
   const s = STUDENTS.find(x=>x.id===studentId);
-  const email = document.getElementById('gl_email').value.trim();
+  const phone = document.getElementById('gl_phone').value.trim();
   const password = document.getElementById('gl_pass').value.trim();
-  if(!email || password.length < 6){ showToast('Please enter a valid email and a password of at least 6 characters', 'error'); return; }
-  const uid = await createLoginCredential('student', s.name, s.branch, email, password, { studentId: s.id });
+  if(phone.replace(/\D/g,'').length < 10 || password.length < 6){ showToast('Please enter a valid 10-digit phone number and a password of at least 6 characters', 'error'); return; }
+  const uid = await createPhoneLoginCredential('student', s.name, s.branch, phone, password, { studentId: s.id });
   if(uid){
-    s.loginEmail = email;
-    persist('students', s.id, { loginEmail: email });
+    s.loginPhone = phone.replace(/\D/g,'');
+    persist('students', s.id, { loginPhone: s.loginPhone });
     logActivity('Admin', `Generated student login — ${s.name} (${s.id})`, s.branch);
     closeModal();
-    showToast(`✅ Login created!\n\nEmail: ${email}\nPassword: ${password}\n\nPlease give these details to the student — this password will not be shown here again.`, 'success');
+    showToast(`✅ Login created for ${s.name}! Opening WhatsApp to share the details…`, 'success');
+    sendWelcomeWhatsApp(s, s.loginPhone, password);
     renderStudents();
   }
 }
 // ---------- PARENT LOGIN CREDENTIALS (same secondary-app trick, role: 'parent') ----------
 function openGenerateParentLogin(studentId){
   const s = STUDENTS.find(x=>x.id===studentId);
-  const defaultEmail = s.parentLoginEmail || (s.id.toLowerCase().replace(/-/g,'') + '.parent@manjuclasses.app');
+  const defaultPhone = s.parentLoginPhone || ((s.phone && s.phone.replace(/\D/g,'').length >= 10) ? s.phone.replace(/\D/g,'') : '');
   const defaultPass = Math.random().toString(36).slice(-8);
   openModal(`
     <div class="modal-header"><h3>Generate Parent Login — ${s.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-    <div class="field"><label>Login Email</label><input type="text" id="pgl_email" value="${defaultEmail}"></div>
+    <div class="field"><label>Phone Number (this will be the Login ID)</label><input type="text" id="pgl_phone" value="${defaultPhone}" placeholder="10-digit mobile number"></div>
     <div class="field"><label>Password</label><input type="text" id="pgl_pass" value="${defaultPass}"></div>
-    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">This login lets the parent view their child's fees, attendance, homework, tests and notifications. Once generated, share the credentials with the parent via WhatsApp/SMS — the password won't be shown here again.</p>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px;">This login lets the parent view their child's fees, attendance, homework, tests and notifications (view-only). If this is the same phone number as the student's own login, that's fine — each gets a separate account.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary" onclick="submitGenerateParentLogin('${studentId}')">Create Login</button>
@@ -1575,16 +1780,17 @@ function openGenerateParentLogin(studentId){
 }
 async function submitGenerateParentLogin(studentId){
   const s = STUDENTS.find(x=>x.id===studentId);
-  const email = document.getElementById('pgl_email').value.trim();
+  const phone = document.getElementById('pgl_phone').value.trim();
   const password = document.getElementById('pgl_pass').value.trim();
-  if(!email || password.length < 6){ showToast('Please enter a valid email and a password of at least 6 characters', 'error'); return; }
-  const uid = await createLoginCredential('parent', s.father + ' (Parent of ' + s.name + ')', s.branch, email, password);
+  if(phone.replace(/\D/g,'').length < 10 || password.length < 6){ showToast('Please enter a valid 10-digit phone number and a password of at least 6 characters', 'error'); return; }
+  const uid = await createPhoneLoginCredential('parent', s.father + ' (Parent of ' + s.name + ')', s.branch, phone, password, { studentId: s.id });
   if(uid){
-    s.parentLoginEmail = email;
-    persist('students', s.id, { parentLoginEmail: email });
+    s.parentLoginPhone = phone.replace(/\D/g,'');
+    persist('students', s.id, { parentLoginPhone: s.parentLoginPhone });
     logActivity('Admin', `Generated parent login — ${s.name} (${s.id})`, s.branch);
     closeModal();
-    showToast(`✅ Parent Login created!\n\nEmail: ${email}\nPassword: ${password}\n\nPlease give these details to the parent — this password will not be shown here again.`, 'success');
+    showToast(`✅ Parent login created for ${s.name}! Opening WhatsApp to share the details…`, 'success');
+    sendWelcomeWhatsApp(s, s.parentLoginPhone, password);
     renderStudents();
   }
 }
@@ -1602,7 +1808,16 @@ function openAddStudent(){
       </div>
       <div class="field"><label>Phone</label><input type="text" id="f_phone"></div>
       <div class="field"><label>Date of Admission</label><input type="date" id="f_admission" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field full"><label>Address</label><input type="text" id="f_address" placeholder="House no., street, area"></div>
+      <div class="field"><label>Batch</label>
+        <select id="f_batch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="Unassigned">Unassigned (decide later)</option>
+          ${BATCHES.map(b => `<option value="${b.name}">${b.name} (${CONFIG.branches[b.branch].name})</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Monthly Fee (₹)</label><input type="number" id="f_fee" placeholder="e.g. 1500"></div>
     </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:14px;">This month's fee will show as pending until a payment is recorded against it.</p>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary" onclick="saveStudent()">Save Student</button>
@@ -1612,12 +1827,17 @@ function openAddStudent(){
 function saveStudent(){
   const name = document.getElementById('f_name').value.trim();
   if(!name){ showToast('Name is required', 'error'); return; }
-  const newId = 'MC-' + (1040 + STUDENTS.length + 10);
+  const newId = 'MJC-' + (1040 + STUDENTS.length + 10);
+  const monthlyFee = parseFloat(document.getElementById('f_fee').value) || 0;
+  const admissionDate = document.getElementById('f_admission').value || new Date().toISOString().slice(0,10);
   const rec = {
     id:newId, name, father:document.getElementById('f_father').value||'-',
     cls:document.getElementById('f_cls').value||'-', branch:document.getElementById('f_branch').value,
-    batch:'Unassigned', phone:document.getElementById('f_phone').value||'-', status:'active', feeDue:0,
-    admissionDate: document.getElementById('f_admission').value || new Date().toISOString().slice(0,10)
+    batch:document.getElementById('f_batch').value||'Unassigned', phone:document.getElementById('f_phone').value||'-',
+    address:document.getElementById('f_address').value.trim()||'-', status:'active',
+    monthlyFee, feeDue: monthlyFee,
+    admissionDate, dueDay: parseInt(admissionDate.slice(8,10)) || 5,
+    lastFeeMonth: admissionDate.slice(0,7)
   };
   STUDENTS.unshift(rec);
   persist('students', newId, rec);
@@ -1638,9 +1858,10 @@ function renderEnquiry(){
         <div class="list-avatar">${initials(e.name)}</div>
         <div class="list-main">
           <div class="name">${e.name}</div>
-          <div class="meta">Class ${e.cls} · ${e.source} · ${e.date}</div>
+          <div class="meta">Class ${e.cls} · ${e.source} · Enquired ${e.date}</div>
           <div class="list-badges">${branchTag(e.branch)}<span class="badge ${e.status}">${e.status}</span></div>
         </div>
+        <div class="list-side">${e.followUpDate ? `<div class="amt due">Follow-up<br>${e.followUpDate}</div>` : ''}</div>
       </div>`).join('') || `<div class="empty-state">No enquiries found.<br><button class="btn-add" style="margin-top:12px;" onclick="openAddEnquiry()">+ New Enquiry</button></div>`}
   `;
 }
@@ -1650,16 +1871,67 @@ function viewEnquiry(id){
     <div class="modal-header"><h3>${e.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div class="detail-row"><span class="k">Parent</span><span class="v">${e.parent}</span></div>
     <div class="detail-row"><span class="k">Phone</span><span class="v">${e.phone}</span></div>
-    <div class="detail-row"><span class="k">Class</span><span class="v">${e.cls}</span></div>
+    <div class="detail-row"><span class="k">Class Interested</span><span class="v">${e.cls}</span></div>
     <div class="detail-row"><span class="k">Source</span><span class="v">${e.source}</span></div>
+    <div class="detail-row"><span class="k">Enquiry Date</span><span class="v">${e.date}</span></div>
+    <div class="detail-row"><span class="k">Follow-up Date</span><span class="v" style="color:var(--crimson)">${e.followUpDate || '—'}</span></div>
     <div class="detail-row"><span class="k">Status</span><span class="v">${e.status}</span></div>
+    ${e.notes ? `<p style="font-size:12.5px;color:var(--muted);margin-top:10px;"><b>Notes:</b> ${e.notes}</p>` : ''}
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Close</button>
+      <button class="btn-primary" onclick="openEditEnquiry('${e.id}')">✏️ Edit</button>
       <button class="btn-primary" onclick="markAdmitted('${e.id}')">✅ Mark Admitted</button>
       <button class="btn-primary" onclick="sendAdmissionConfirmation('${e.id}')">📱 Confirm</button>
       <button class="btn-danger" onclick="deleteEnquiry('${e.id}')">🗑️ Delete</button>
     </div>
   `);
+}
+function openEditEnquiry(id){
+  const e = ENQUIRIES.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-header"><h3>Edit Enquiry</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Student Name</label><input type="text" id="ee_name" value="${e.name}"></div>
+      <div class="field"><label>Parent Name</label><input type="text" id="ee_parent" value="${e.parent}"></div>
+      <div class="field"><label>Phone</label><input type="text" id="ee_phone" value="${e.phone}"></div>
+      <div class="field"><label>Class Interested</label><input type="text" id="ee_cls" value="${e.cls}"></div>
+      <div class="field"><label>Source</label><input type="text" id="ee_source" value="${e.source}"></div>
+      <div class="field"><label>Follow-up Date</label><input type="date" id="ee_followup" value="${e.followUpDate || ''}"></div>
+      <div class="field"><label>Status</label>
+        <select id="ee_status" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="new" ${e.status==='new'?'selected':''}>New</option>
+          <option value="follow-up" ${e.status==='follow-up'?'selected':''}>Follow-up</option>
+          <option value="admitted" ${e.status==='admitted'?'selected':''}>Admitted</option>
+          <option value="not-interested" ${e.status==='not-interested'?'selected':''}>Not Interested</option>
+        </select>
+      </div>
+      <div class="field full"><label>Notes</label><input type="text" id="ee_notes" value="${e.notes||''}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditEnquiry('${e.id}')">Save Changes</button>
+    </div>
+  `);
+}
+async function saveEditEnquiry(id){
+  const e = ENQUIRIES.find(x=>x.id===id);
+  if(!e) return;
+  const name = document.getElementById('ee_name').value.trim();
+  if(!name){ showToast('Name is required', 'error'); return; }
+  e.name = name;
+  e.parent = document.getElementById('ee_parent').value.trim() || '-';
+  e.phone = document.getElementById('ee_phone').value.trim() || '-';
+  e.cls = document.getElementById('ee_cls').value.trim() || '-';
+  e.source = document.getElementById('ee_source').value.trim() || '-';
+  e.followUpDate = document.getElementById('ee_followup').value || '';
+  e.status = document.getElementById('ee_status').value;
+  e.notes = document.getElementById('ee_notes').value.trim();
+  const ok = await persist('enquiries', e.id, e);
+  if(!ok) return;
+  logActivity('Admin', `Updated enquiry — ${e.name}`, e.branch);
+  showToast('Enquiry updated', 'success');
+  closeModal();
+  renderEnquiry();
 }
 async function deleteEnquiry(id){
   const e = ENQUIRIES.find(x=>x.id===id);
@@ -1702,6 +1974,8 @@ function openAddEnquiry(){
           <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
         </select>
       </div>
+      <div class="field"><label>Follow-up Date</label><input type="date" id="e_followup"></div>
+      <div class="field full"><label>Notes</label><input type="text" id="e_notes" placeholder="e.g. Wants morning batch, comparing with another institute"></div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -1717,7 +1991,9 @@ function saveEnquiry(){
     id, name, parent:document.getElementById('e_parent').value||'-',
     phone:document.getElementById('e_phone').value||'-', cls:document.getElementById('e_cls').value||'-',
     branch:document.getElementById('e_branch').value, source:'Manual Entry',
-    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), status:'new'
+    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}), status:'new',
+    followUpDate: document.getElementById('e_followup').value || '',
+    notes: document.getElementById('e_notes').value.trim()
   };
   ENQUIRIES.unshift(rec);
   persist('enquiries', id, rec);
@@ -1782,6 +2058,15 @@ function openEditTeacher(id){
         </select>
       </div>
       <div class="field"><label>Date of Joining</label><input type="date" id="et_joined" value="${/^\d{4}-\d{2}-\d{2}$/.test(t.joined) ? t.joined : ''}"></div>
+      <div class="field full">
+        <label>Assign Batches</label>
+        <div style="border:1px solid var(--line);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;">
+          ${BATCHES.length ? BATCHES.map(b => `
+            <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;">
+              <input type="checkbox" class="et_batch_chk" value="${b.id}" ${b.teacher===t.name?'checked':''}> ${b.name} <span style="color:var(--muted);font-size:11px;">(${CONFIG.branches[b.branch].name})</span>
+            </label>`).join('') : `<div style="font-size:12px;color:var(--muted);">No batches created yet.</div>`}
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -1794,17 +2079,28 @@ async function saveEditTeacher(id){
   if(!t) return;
   const name = document.getElementById('et_name').value.trim();
   if(!name){ showToast('Name is required', 'error'); return; }
+  const oldName = t.name;
   t.name = name;
   t.subj = document.getElementById('et_subj').value.trim() || '-';
   t.phone = document.getElementById('et_phone').value.trim() || '-';
   t.branch = document.getElementById('et_branch').value;
   t.status = document.getElementById('et_status').value;
   t.joined = document.getElementById('et_joined').value || t.joined || '';
+  const selectedBatchIds = Array.from(document.querySelectorAll('.et_batch_chk:checked')).map(el => el.value);
+  t.batches = selectedBatchIds.length;
   const ok = await persist('teachers', t.id, {
     name: t.name, subj: t.subj, phone: t.phone, branch: t.branch,
     status: t.status, joined: t.joined, batches: t.batches || 0
   });
   if(!ok) return;
+  // Sync batch assignments: newly checked batches get this teacher's (new) name;
+  // batches that were assigned to this teacher but got unchecked are cleared.
+  BATCHES.forEach(b => {
+    const shouldBeAssigned = selectedBatchIds.includes(b.id);
+    const wasAssigned = b.teacher === oldName;
+    if(shouldBeAssigned && b.teacher !== t.name){ b.teacher = t.name; persist('batches', b.id, b); }
+    else if(!shouldBeAssigned && wasAssigned){ b.teacher = '-'; persist('batches', b.id, b); }
+  });
   logActivity('Admin', `Updated teacher details — ${t.name} (${t.id})`, t.branch);
   showToast('Teacher details updated', 'success');
   closeModal();
@@ -1869,6 +2165,15 @@ function openAddTeacher(){
         </select>
       </div>
       <div class="field"><label>Date of Joining</label><input type="date" id="t_joined" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field full">
+        <label>Assign Batches</label>
+        <div style="border:1px solid var(--line);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;">
+          ${BATCHES.length ? BATCHES.map(b => `
+            <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;">
+              <input type="checkbox" class="t_batch_chk" value="${b.id}"> ${b.name} <span style="color:var(--muted);font-size:11px;">(${CONFIG.branches[b.branch].name})</span>
+            </label>`).join('') : `<div style="font-size:12px;color:var(--muted);">No batches created yet — add batches first from Classes & Batches.</div>`}
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -1880,13 +2185,19 @@ function saveTeacher(){
   const name = document.getElementById('t_name').value.trim();
   if(!name){ showToast('Name is required', 'error'); return; }
   const id = 'T-'+(10+TEACHERS.length);
+  const selectedBatchIds = Array.from(document.querySelectorAll('.t_batch_chk:checked')).map(el => el.value);
   const rec = {
     id, name, subj:document.getElementById('t_subj').value||'-',
     branch:document.getElementById('t_branch').value, phone:document.getElementById('t_phone').value||'-',
-    batches:0, joined:document.getElementById('t_joined').value || new Date().toISOString().slice(0,10), status:'active'
+    batches:selectedBatchIds.length, joined:document.getElementById('t_joined').value || new Date().toISOString().slice(0,10), status:'active'
   };
   TEACHERS.unshift(rec);
   persist('teachers', id, rec);
+  selectedBatchIds.forEach(bid => {
+    const b = BATCHES.find(x=>x.id===bid);
+    if(b){ b.teacher = name; persist('batches', b.id, b); }
+  });
+  logActivity('Admin', `Added new teacher — ${name}`, rec.branch);
   closeModal();
   renderTeachers();
 }
@@ -1934,7 +2245,12 @@ function openEditBatch(id){
     <div class="form-grid">
       <div class="field full"><label>Batch Name</label><input type="text" id="eb_name" value="${b.name}"></div>
       <div class="field"><label>Class</label><input type="text" id="eb_cls" value="${b.cls}"></div>
-      <div class="field"><label>Teacher</label><input type="text" id="eb_teacher" value="${b.teacher}"></div>
+      <div class="field"><label>Teacher</label>
+        <select id="eb_teacher" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="-" ${b.teacher==='-'?'selected':''}>Unassigned</option>
+          ${TEACHERS.map(t => `<option value="${t.name}" ${b.teacher===t.name?'selected':''}>${t.name}</option>`).join('')}
+        </select>
+      </div>
       <div class="field"><label>Timing</label><input type="text" id="eb_time" value="${b.time}"></div>
       <div class="field"><label>Days</label><input type="text" id="eb_days" value="${b.days}"></div>
       <div class="field"><label>Max Strength</label><input type="number" id="eb_max" value="${b.max}"></div>
@@ -1991,7 +2307,12 @@ function openAddBatch(){
     <div class="form-grid">
       <div class="field full"><label>Batch Name</label><input type="text" id="b_name" placeholder="e.g. 9A Morning"></div>
       <div class="field"><label>Class</label><input type="text" id="b_cls"></div>
-      <div class="field"><label>Teacher</label><input type="text" id="b_teacher"></div>
+      <div class="field"><label>Teacher</label>
+        <select id="b_teacher" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
+          <option value="-">Unassigned</option>
+          ${TEACHERS.map(t => `<option value="${t.name}">${t.name}</option>`).join('')}
+        </select>
+      </div>
       <div class="field"><label>Timing</label><input type="text" id="b_time" placeholder="7:00–9:00 AM"></div>
       <div class="field"><label>Branch</label>
         <select id="b_branch" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;">
@@ -2017,6 +2338,7 @@ function saveBatch(){
   };
   BATCHES.unshift(rec);
   persist('batches', id, rec);
+  logActivity('Admin', `Added new batch — ${name}`, rec.branch);
   closeModal();
   renderBatches();
 }
@@ -2027,7 +2349,30 @@ let attendanceSelectedDate = new Date().toISOString().slice(0,10);
 
 function renderAttendance(){
   const main = document.getElementById('mainContent');
-  const batches = BATCHES.filter(b => inBranch(b.branch));
+
+  if(currentRole === 'student' || currentRole === 'parent'){
+    const s = STUDENTS.find(x => x.id === currentStudentId);
+    if(!s){
+      main.innerHTML = `<div class="page-header"><h2>Attendance</h2></div><div class="empty-state">Attendance data not found — please contact admin.</div>`;
+      return;
+    }
+    const myRows = ATTENDANCE.filter(a => BATCHES.find(b=>b.id===a.batchId)?.name === s.batch).sort((a,b)=> b.date.localeCompare(a.date));
+    const present = myRows.filter(a=>a.status==='P').length;
+    const pct = myRows.length ? Math.round((present/myRows.length)*100) : null;
+    main.innerHTML = `
+      <div class="page-header"><h2>My Attendance</h2></div>
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="stat-card"><div class="label">Overall Attendance</div><div class="value">${pct!=null?pct+'%':'—'}</div></div>
+        <div class="stat-card"><div class="label">Days Recorded</div><div class="value">${myRows.length}</div></div>
+      </div>
+      <div class="section-card"><h3>History</h3>
+        ${myRows.map(a => `<div class="detail-row"><span class="k">${a.date}</span><span class="v" style="color:${a.status==='P'?'var(--ok)':a.status==='A'?'var(--crimson)':'var(--gold)'}">${a.status==='P'?'Present':a.status==='A'?'Absent':'Late'}</span></div>`).join('') || `<div class="empty-state">No attendance recorded yet.</div>`}
+      </div>
+    `;
+    return;
+  }
+
+  const batches = currentRole === 'teacher' ? getMyBatches() : BATCHES.filter(b => inBranch(b.branch));
   if((!attendanceSelectedBatch || !batches.find(b=>b.id===attendanceSelectedBatch)) && batches.length){
     attendanceSelectedBatch = batches[0].id;
   }
@@ -2089,6 +2434,7 @@ function setAttStatus(studentId, status){
 function saveAttendance(){
   const batch = BATCHES.find(b=>b.id===attendanceSelectedBatch);
   const students = STUDENTS.filter(s => s.batch === batch.name && s.branch === batch.branch);
+  const absentees = [];
   students.forEach(s => {
     const status = window._attWorking[s.id] || 'P';
     if(status === 'A') absentees.push(s);
@@ -2102,7 +2448,7 @@ function saveAttendance(){
   if(absentees.length){
     openModal(`
       <div class="modal-header"><h3>Attendance Saved</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
-      <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">${absentees.length} student(s) absent aaj. Parent ko WhatsApp alert bhejein:</p>
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">${absentees.length} student(s) absent today. Send a WhatsApp alert to their parents:</p>
       ${absentees.map(s => `
         <div class="list-card" style="cursor:default;">
           <div class="list-avatar">${initials(s.name)}</div>
@@ -2124,10 +2470,19 @@ function sendAbsentAlert(studentId){
 // ---------- TIMETABLE ----------
 function renderTimetable(){
   const main = document.getElementById('mainContent');
-  const rows = TIMETABLE.filter(t => inBranch(t.branch));
+  const isAdmin = currentRole === 'admin';
+  let rows = TIMETABLE.filter(t => inBranch(t.branch));
+  if(currentRole === 'teacher'){
+    const myBatchNames = getMyBatches().map(b=>b.name);
+    rows = rows.filter(r => myBatchNames.includes(r.batch));
+  }
+  if(currentRole === 'student' || currentRole === 'parent'){
+    const s = STUDENTS.find(x => x.id === currentStudentId);
+    rows = s ? rows.filter(r => r.batch === s.batch) : [];
+  }
   main.innerHTML = `
     <div class="page-header"><h2>Timetable</h2></div>
-    <div class="toolbar"><button class="btn-add" onclick="openAddSlot()">+ Add Slot</button></div>
+    ${isAdmin ? `<div class="toolbar"><button class="btn-add" onclick="openAddSlot()">+ Add Slot</button></div>` : ''}
     ${WEEKDAYS.map(day => {
       const dayRows = rows.filter(r=>r.day===day).sort((a,b)=>a.time.localeCompare(b.time));
       if(!dayRows.length) return '';
@@ -2137,10 +2492,10 @@ function renderTimetable(){
         ${dayRows.map(r => `
           <div class="activity-row">
             <span><span class="who">${r.time}</span> — ${r.subj} · ${r.batch} (${r.teacher})</span>
-            <span class="when">${branchTag(r.branch)}<button class="btn-delete-icon" onclick="deleteSlot('${r.id}')">🗑️</button></span>
+            <span class="when">${branchTag(r.branch)}${isAdmin ? `<button class="btn-delete-icon" onclick="deleteSlot('${r.id}')">🗑️</button>` : ''}</span>
           </div>`).join('')}
       </div>`;
-    }).join('') || `<div class="empty-state">No timetable set for this branch yet.<br><button class="btn-add" style="margin-top:12px;" onclick="openAddSlot()">+ Add Slot</button></div>`}
+    }).join('') || `<div class="empty-state">No timetable set yet.${isAdmin ? '<br><button class="btn-add" style="margin-top:12px;" onclick="openAddSlot()">+ Add Slot</button>' : ''}</div>`}
   `;
 }
 async function deleteSlot(id){
@@ -2191,6 +2546,7 @@ function saveSlot(){
   };
   TIMETABLE.push(rec);
   persist('timetable', id, rec);
+  logActivity('Admin', `Added timetable slot — ${rec.day} ${rec.time} (${rec.batch})`, rec.branch);
   closeModal();
   renderTimetable();
 }
@@ -2198,24 +2554,32 @@ function saveSlot(){
 // ---------- HOMEWORK ----------
 function renderHomework(){
   const main = document.getElementById('mainContent');
-  const rows = HOMEWORK.filter(h => inBranch(h.branch));
+  const isStaff = currentRole === 'admin' || currentRole === 'teacher';
+  let rows = HOMEWORK.filter(h => inBranch(h.branch));
+  if(currentRole === 'teacher') rows = rows.filter(h => getMyBatches().some(b=>b.name===h.batch));
+  if(currentRole === 'student' || currentRole === 'parent'){
+    const s = STUDENTS.find(x => x.id === currentStudentId);
+    rows = s ? HOMEWORK.filter(h => h.batch === s.batch) : [];
+  }
   main.innerHTML = `
     <div class="page-header"><h2>Homework</h2><span class="date-tag">${rows.length} shown</span></div>
-    <div class="toolbar"><button class="btn-add" onclick="openAddHomework()">+ Add Homework</button></div>
+    ${isStaff ? `<div class="toolbar"><button class="btn-add" onclick="openAddHomework()">+ Add Homework</button></div>` : ''}
     ${rows.map(h => `
       <div class="section-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <h3>${h.title}</h3>
+          ${isStaff ? `
           <div>
             <button class="btn-delete-icon" onclick="openEditHomework('${h.id}')" style="color:var(--navy);">✏️</button>
             <button class="btn-delete-icon" onclick="deleteHomework('${h.id}')">🗑️</button>
-          </div>
+          </div>` : ''}
         </div>
         <div class="detail-row"><span class="k">Class / Batch</span><span class="v">${h.cls} · ${h.batch}</span></div>
         <div class="detail-row"><span class="k">Subject</span><span class="v">${h.subj}</span></div>
         <div class="detail-row"><span class="k">Due Date</span><span class="v" style="color:var(--crimson)">${h.due}</span></div>
         <p style="font-size:12.5px;color:var(--muted);margin-top:8px;">${h.desc}</p>
-      </div>`).join('') || `<div class="empty-state">No homework assigned yet.<br><button class="btn-add" style="margin-top:12px;" onclick="openAddHomework()">+ Add Homework</button></div>`}
+        ${h.fileUrl ? `<a href="${h.fileUrl}" target="_blank" style="display:inline-block;margin-top:8px;font-size:12.5px;color:var(--navy);font-weight:600;">📎 ${h.fileName || 'Attachment'}</a>` : ''}
+      </div>`).join('') || `<div class="empty-state">No homework assigned yet.${isStaff ? '<br><button class="btn-add" style="margin-top:12px;" onclick="openAddHomework()">+ Add Homework</button>' : ''}</div>`}
   `;
 }
 function openEditHomework(id){
@@ -2290,24 +2654,40 @@ function openAddHomework(){
         </select>
       </div>
       <div class="field full"><label>Description</label><input type="text" id="h_desc"></div>
+      <div class="field full"><label>Attach Photo or PDF (optional)</label><input type="file" id="h_file" accept=".pdf,image/*"></div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" onclick="saveHomework()">Save Homework</button>
+      <button class="btn-primary" id="h_saveBtn" onclick="saveHomework()">Save Homework</button>
     </div>
   `);
 }
-function saveHomework(){
+async function saveHomework(){
   const title = document.getElementById('h_title').value.trim();
   if(!title){ showToast('Title is required', 'error'); return; }
   const id = 'HW-'+(10+HOMEWORK.length);
   const rec = {
     id, title, cls:document.getElementById('h_cls').value||'-', batch:document.getElementById('h_batch').value||'-',
     subj:document.getElementById('h_subj').value||'-', branch:document.getElementById('h_branch').value,
-    due:document.getElementById('h_due').value||'-', desc:document.getElementById('h_desc').value||''
+    due:document.getElementById('h_due').value||'-', desc:document.getElementById('h_desc').value||'',
+    fileUrl:'', fileName:''
   };
+  const file = document.getElementById('h_file').files[0];
+  if(file){
+    const saveBtn = document.getElementById('h_saveBtn');
+    saveBtn.disabled = true; saveBtn.textContent = 'Uploading…';
+    try{
+      rec.fileUrl = await readAttachment(file);
+      rec.fileName = file.name;
+    }catch(err){
+      showToast(err.message, 'error');
+      saveBtn.disabled = false; saveBtn.textContent = 'Save Homework';
+      return;
+    }
+  }
   HOMEWORK.unshift(rec);
   persist('homework', id, rec);
+  logActivity(currentRole==='teacher' ? 'Teacher' : 'Admin', `Added homework — ${title}`, rec.branch);
   closeModal();
   renderHomework();
 }
@@ -2315,20 +2695,21 @@ function saveHomework(){
 // ---------- STUDY MATERIAL ----------
 function renderMaterial(){
   const main = document.getElementById('mainContent');
+  const isStaff = currentRole === 'admin' || currentRole === 'teacher';
   const rows = MATERIAL.filter(m => inBranch(m.branch));
   main.innerHTML = `
     <div class="page-header"><h2>Study Material</h2><span class="date-tag">${rows.length} shown</span></div>
-    <div class="toolbar"><button class="btn-add" onclick="openAddMaterial()">+ Add Material</button></div>
+    ${isStaff ? `<div class="toolbar"><button class="btn-add" onclick="openAddMaterial()">+ Add Material</button></div>` : ''}
     ${rows.map(m => `
-      <div class="list-card" style="cursor:default;">
+      <div class="list-card" ${m.fileUrl ? `onclick="window.open('${m.fileUrl}','_blank')"` : `style="cursor:default;"`}>
         <div class="list-avatar">${m.type[0]}</div>
         <div class="list-main">
           <div class="name">${m.title}</div>
           <div class="meta">Class ${m.cls} · ${m.subj} · ${m.chapter}</div>
           <div class="list-badges">${branchTag(m.branch)}<span class="badge active">${m.type}</span></div>
         </div>
-        <div class="list-side"><button class="btn-delete-icon" onclick="deleteMaterial('${m.id}')">🗑️</button></div>
-      </div>`).join('') || `<div class="empty-state">No study material uploaded yet.<br><button class="btn-add" style="margin-top:12px;" onclick="openAddMaterial()">+ Add Material</button></div>`}
+        ${isStaff ? `<div class="list-side"><button class="btn-delete-icon" onclick="event.stopPropagation(); deleteMaterial('${m.id}')">🗑️</button></div>` : (m.fileUrl ? `<div class="list-side">📥</div>` : '')}
+      </div>`).join('') || `<div class="empty-state">No study material uploaded yet.${isStaff ? '<br><button class="btn-add" style="margin-top:12px;" onclick="openAddMaterial()">+ Add Material</button>' : ''}</div>`}
   `;
 }
 async function deleteMaterial(id){
@@ -2363,24 +2744,51 @@ function openAddMaterial(){
           <option value="b1">Branch 1</option><option value="b2">Branch 2</option>
         </select>
       </div>
+      <div class="field full" id="m_fileWrap"><label>Upload File (PDF or Image, optional)</label><input type="file" id="m_file" accept=".pdf,image/*"></div>
+      <div class="field full" id="m_linkWrap" style="display:none;"><label>Video Link (YouTube/Drive URL)</label><input type="text" id="m_link" placeholder="https://..."></div>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" onclick="saveMaterial()">Save</button>
+      <button class="btn-primary" id="m_saveBtn" onclick="saveMaterial()">Save</button>
     </div>
   `);
+  document.getElementById('m_type').addEventListener('change', (e) => {
+    const isVideo = e.target.value === 'Video Link';
+    document.getElementById('m_fileWrap').style.display = isVideo ? 'none' : 'block';
+    document.getElementById('m_linkWrap').style.display = isVideo ? 'block' : 'none';
+  });
 }
-function saveMaterial(){
+async function saveMaterial(){
   const title = document.getElementById('m_title').value.trim();
   if(!title){ showToast('Title is required', 'error'); return; }
   const id = 'M-'+(10+MATERIAL.length);
+  const type = document.getElementById('m_type').value;
   const rec = {
     id, title, cls:document.getElementById('m_cls').value||'-', subj:document.getElementById('m_subj').value||'-',
-    chapter:document.getElementById('m_chapter').value||'-', type:document.getElementById('m_type').value,
-    branch:document.getElementById('m_branch').value
+    chapter:document.getElementById('m_chapter').value||'-', type,
+    branch:document.getElementById('m_branch').value, fileUrl:'', fileName:''
   };
+  if(type === 'Video Link'){
+    rec.fileUrl = document.getElementById('m_link').value.trim();
+  } else {
+    const fileInput = document.getElementById('m_file');
+    const file = fileInput.files[0];
+    if(file){
+      const saveBtn = document.getElementById('m_saveBtn');
+      saveBtn.disabled = true; saveBtn.textContent = 'Uploading…';
+      try{
+        rec.fileUrl = await readAttachment(file);
+        rec.fileName = file.name;
+      }catch(err){
+        showToast(err.message, 'error');
+        saveBtn.disabled = false; saveBtn.textContent = 'Save';
+        return;
+      }
+    }
+  }
   MATERIAL.unshift(rec);
   persist('material', id, rec);
+  logActivity('Admin', `Added study material — ${title}`, rec.branch);
   closeModal();
   renderMaterial();
 }
@@ -2407,7 +2815,7 @@ function renderFees(){
         ${myPayments.map(p => `
           <div class="list-card" onclick="viewReceipt('${p.id}')">
             <div class="list-avatar">🧾</div>
-            <div class="list-main"><div class="name">${p.feeMonth}</div><div class="meta">${p.receiptNo} · ${p.date} · ${p.method}</div></div>
+            <div class="list-main"><div class="name">${p.feeMonth}</div><div class="meta">${p.receiptNo} · ${formatDateNice(p.date)} · ${p.method}</div></div>
             <div class="list-side"><div class="amt">₹${p.total}</div></div>
           </div>`).join('') || `<div class="empty-state">No payments recorded yet.</div>`}
       </div>
@@ -2416,7 +2824,6 @@ function renderFees(){
   }
 
   const rows = branchPayments().sort((a,b)=> b.id.localeCompare(a.id));
-  const today = rows.filter(p=>p.date === rows[0]?.date); // demo: treat latest date as "today"
   const totalCollection = rows.reduce((s,p)=>s+p.total,0);
   const pendingFees = STUDENTS.filter(s=>inBranch(s.branch)).reduce((s,st)=>s+st.feeDue,0);
 
@@ -2436,7 +2843,7 @@ function renderFees(){
         <div class="list-avatar">${initials(p.studentName)}</div>
         <div class="list-main">
           <div class="name">${p.studentName}</div>
-          <div class="meta">${p.receiptNo} · ${p.feeMonth} · ${p.date} · ${p.method}</div>
+          <div class="meta">${p.receiptNo} · ${p.feeMonth} · ${formatDateNice(p.date)} · ${p.method}</div>
           <div class="list-badges">${branchTag(p.branch)}</div>
         </div>
         <div class="list-side"><div class="amt">₹${p.total}</div></div>
@@ -2482,7 +2889,7 @@ function savePayment(){
   const receiptNo = CONFIG.receiptPrefix + '-' + (1000 + PAYMENTS.length + 10);
   const rec = {
     id, studentId, studentName:s.name, branch:s.branch, amount, discount, fine, total,
-    date: new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short'}),
+    date: new Date().toISOString().slice(0,10),
     method: document.getElementById('p_method').value, feeMonth: document.getElementById('p_month').value||'-',
     receiptNo, collectedBy:'Admin', remarks: document.getElementById('p_remarks').value||''
   };
@@ -2503,11 +2910,12 @@ function viewReceipt(paymentId){
   openModal(`
     <div class="modal-header"><h3>Payment Receipt</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <div style="text-align:center;margin-bottom:14px;">
+      <img src="logo-emblem.png" alt="Manju Classes" style="width:44px;height:44px;object-fit:contain;margin-bottom:4px;">
       <div style="font-family:'Georgia',serif;font-size:16px;color:var(--navy);font-weight:700;">MANJU CLASSES</div>
       <div style="font-size:11px;color:var(--muted);">${branch.name} — ${branch.address}</div>
     </div>
     <div class="detail-row"><span class="k">Receipt No.</span><span class="v">${p.receiptNo}</span></div>
-    <div class="detail-row"><span class="k">Date</span><span class="v">${p.date}</span></div>
+    <div class="detail-row"><span class="k">Date</span><span class="v">${formatDateNice(p.date)}</span></div>
     <div class="detail-row"><span class="k">Student</span><span class="v">${p.studentName} (${p.studentId})</span></div>
     ${stu && stu.admissionDate ? `<div class="detail-row"><span class="k">Date of Admission</span><span class="v">${stu.admissionDate}</span></div>` : ''}
     <div class="detail-row"><span class="k">Fee Month</span><span class="v">${p.feeMonth}</span></div>
@@ -2515,6 +2923,7 @@ function viewReceipt(paymentId){
     <div class="detail-row"><span class="k">Discount</span><span class="v">₹${p.discount}</span></div>
     <div class="detail-row"><span class="k">Fine</span><span class="v">₹${p.fine}</span></div>
     <div class="detail-row"><span class="k">Total Paid</span><span class="v" style="color:var(--ok);font-size:15px;">₹${p.total}</span></div>
+    <div class="detail-row"><span class="k">Remaining Due</span><span class="v" style="color:${stu && stu.feeDue>0?'var(--crimson)':'var(--ok)'}">${stu ? (stu.feeDue>0 ? '₹'+stu.feeDue : 'Paid up') : '—'}</span></div>
     <div class="detail-row"><span class="k">Payment Method</span><span class="v">${p.method}</span></div>
     <div class="detail-row"><span class="k">Collected By</span><span class="v">${p.collectedBy}</span></div>
     <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:14px;">Thank you for choosing Manju Classes.</div>
@@ -2529,7 +2938,7 @@ function viewReceipt(paymentId){
       <button class="btn-secondary" onclick="closeModal()">Close</button>
       ${isStaff ? `<button class="btn-primary" onclick="openEditPaymentRecord('${p.id}')">✏️ Edit</button>` : ''}
       <button class="btn-primary" onclick="printReceipt('${p.id}')">🖨️ Print</button>
-      <button class="btn-primary" onclick="shareReceiptWhatsApp('${p.id}')">📱 Send WhatsApp</button>
+      ${isStaff ? `<button class="btn-primary" onclick="shareReceiptWhatsApp('${p.id}')">📱 Send WhatsApp</button>` : ''}
       ${isStaff ? `<button class="btn-danger" onclick="deletePaymentRecord('${p.id}')">🗑️ Delete</button>` : ''}
     </div>
   `);
@@ -2607,7 +3016,7 @@ function shareReceiptWhatsApp(paymentId){
     + `Hello *${p.studentName}*,\n`
     + `Your fee payment has been received successfully. ✅\n\n`
     + `📄 Receipt No: *${p.receiptNo}*\n`
-    + `📅 Date: ${p.date}\n`
+    + `📅 Date: ${formatDateNice(p.date)}\n`
     + `🗓️ Month: ${p.feeMonth}\n`
     + `💰 Amount Paid: *₹${p.total}*\n`
     + `💳 Method: ${p.method}\n\n`
@@ -2627,11 +3036,12 @@ function printReceipt(paymentId){
       table{width:100%;border-collapse:collapse;} td{padding:8px 0;border-bottom:1px dashed #ccc;font-size:14px;}
       td:last-child{text-align:right;font-weight:bold;} .foot{text-align:center;margin-top:24px;font-size:12px;color:#666;}
     </style></head><body>
+      <img src="${new URL('logo-emblem.png', window.location.href).href}" style="width:50px;height:50px;object-fit:contain;">
       <h2>MANJU CLASSES</h2>
       <div class="addr">${branch.name} — ${branch.address}</div>
       <table>
         <tr><td>Receipt No.</td><td>${p.receiptNo}</td></tr>
-        <tr><td>Date</td><td>${p.date}</td></tr>
+        <tr><td>Date</td><td>${formatDateNice(p.date)}</td></tr>
         <tr><td>Student</td><td>${p.studentName} (${p.studentId})</td></tr>
         ${stu && stu.admissionDate ? `<tr><td>Date of Admission</td><td>${stu.admissionDate}</td></tr>` : ''}
         <tr><td>Fee Month</td><td>${p.feeMonth}</td></tr>
@@ -2639,6 +3049,7 @@ function printReceipt(paymentId){
         <tr><td>Discount</td><td>₹${p.discount}</td></tr>
         <tr><td>Fine</td><td>₹${p.fine}</td></tr>
         <tr><td>Total Paid</td><td>₹${p.total}</td></tr>
+        ${stu ? `<tr><td>Remaining Due</td><td>${stu.feeDue>0 ? '₹'+stu.feeDue : 'Paid up'}</td></tr>` : ''}
         <tr><td>Method</td><td>${p.method}</td></tr>
         <tr><td>Collected By</td><td>${p.collectedBy}</td></tr>
       </table>
@@ -2811,10 +3222,20 @@ function saveSalary(){
 // ---------- TESTS, RESULTS & PERFORMANCE ----------
 function renderTests(){
   const main = document.getElementById('mainContent');
-  const rows = TESTS.filter(t => inBranch(t.branch)).sort((a,b)=>b.id.localeCompare(a.id));
+  const isAdmin = currentRole === 'admin';
+  const isTeacher = currentRole === 'teacher';
+  let rows = TESTS.filter(t => inBranch(t.branch)).sort((a,b)=>b.id.localeCompare(a.id));
+  if(isTeacher){
+    const myBatchNames = getMyBatches().map(b=>b.name);
+    rows = rows.filter(t => myBatchNames.includes(t.batch));
+  }
+  if(currentRole === 'student' || currentRole === 'parent'){
+    const s = STUDENTS.find(x => x.id === currentStudentId);
+    rows = s ? rows.filter(t => t.batch === s.batch) : [];
+  }
   main.innerHTML = `
     <div class="page-header"><h2>Tests & Results</h2><span class="date-tag">${rows.length} shown</span></div>
-    <div class="toolbar"><button class="btn-add" onclick="openAddTest()">+ Create Test</button></div>
+    ${(isAdmin || isTeacher) ? `<div class="toolbar"><button class="btn-add" onclick="openAddTest()">+ Create Test</button></div>` : ''}
     ${rows.map(t => {
       const resultCount = RESULTS.filter(r=>r.testId===t.id).length;
       return `
@@ -2823,14 +3244,14 @@ function renderTests(){
         <div class="detail-row"><span class="k">Class / Batch</span><span class="v">${t.cls} · ${t.batch}</span></div>
         <div class="detail-row"><span class="k">Date</span><span class="v">${t.date}</span></div>
         <div class="detail-row"><span class="k">Max Marks</span><span class="v">${t.maxMarks}</span></div>
-        <div class="detail-row"><span class="k">Marks Entered</span><span class="v">${resultCount} student(s)</span></div>
+        ${(isAdmin || isTeacher) ? `<div class="detail-row"><span class="k">Marks Entered</span><span class="v">${resultCount} student(s)</span></div>` : ''}
         <div class="modal-actions" style="margin-top:12px;">
-          <button class="btn-secondary" onclick="openEnterMarks('${t.id}')">✏️ Enter Marks</button>
+          ${(isAdmin || isTeacher) ? `<button class="btn-secondary" onclick="openEnterMarks('${t.id}')">✏️ Enter Marks</button>` : ''}
           <button class="btn-primary" onclick="viewTestResults('${t.id}')">🏆 View Results</button>
-          <button class="btn-danger" onclick="deleteTest('${t.id}')">🗑️ Delete</button>
+          ${isAdmin ? `<button class="btn-danger" onclick="deleteTest('${t.id}')">🗑️ Delete</button>` : ''}
         </div>
       </div>`;
-    }).join('') || `<div class="empty-state">No tests created yet.<br><button class="btn-add" style="margin-top:12px;" onclick="openAddTest()">+ Create Test</button></div>`}
+    }).join('') || `<div class="empty-state">No tests yet.${(isAdmin||isTeacher) ? '<br><button class="btn-add" style="margin-top:12px;" onclick="openAddTest()">+ Create Test</button>' : ''}</div>`}
   `;
 }
 async function deleteTest(id){
@@ -2880,6 +3301,7 @@ function saveTest(){
   };
   TESTS.unshift(rec);
   persist('tests', id, rec);
+  logActivity(currentRole==='teacher' ? 'Teacher' : 'Admin', `Created test — ${name}`, rec.branch);
   closeModal();
   renderTests();
 }
@@ -2932,14 +3354,17 @@ function saveMarks(testId){
 }
 function viewTestResults(testId){
   const t = TESTS.find(x=>x.id===testId);
-  const rows = RESULTS.filter(r=>r.testId===testId).sort((a,b)=>b.marks-a.marks);
+  let rows = RESULTS.filter(r=>r.testId===testId).sort((a,b)=>b.marks-a.marks);
+  if(currentRole === 'student' || currentRole === 'parent'){
+    rows = rows.filter(r => r.studentId === currentStudentId);
+  }
   openModal(`
     <div class="modal-header"><h3>Results — ${t.name}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${rows.length ? rows.map((r,i) => {
       const pct = (r.marks/t.maxMarks*100).toFixed(1);
       return `
       <div class="detail-row">
-        <span class="k">#${i+1} ${r.studentName}</span>
+        <span class="k">${currentRole==='admin'||currentRole==='teacher' ? '#'+(i+1)+' '+r.studentName : 'Your Score'}</span>
         <span class="v">${r.marks}/${t.maxMarks} (${pct}%) — ${gradeFor(pct)}</span>
       </div>`;
     }).join('') : `<div class="empty-state">No marks entered yet.</div>`}
@@ -3055,10 +3480,10 @@ function broadcastNotice(id){
   if(n.audience === 'Teachers') targets = TEACHERS.filter(t => n.branch==='all' || t.branch===n.branch);
   else targets = STUDENTS.filter(s => n.branch==='all' || s.branch===n.branch);
   if(!targets.length){ showToast('No contacts found for this audience.', 'info'); return; }
-  // wa.me sirf ek number ek time pe support karta hai — real bulk broadcast ke liye
-  // WhatsApp Business/Cloud API chahiye. Demo ke liye pehla contact khulta hai.
+  // wa.me only supports opening one contact at a time — a true bulk broadcast to
+  // everyone at once needs the WhatsApp Business API, which isn't set up here.
   openWhatsApp(targets[0].phone, `${n.title}\n\n${n.message}\n\n— Manju Classes`);
-  showToast(`⚠️ Note: the wa.me link can only open 1 contact at a time (this opened only "${targets[0].name}"). There are ${targets.length} total contacts — sending to all of them at once needs the WhatsApp Business API, which can be configured in Phase 7 Settings.`, 'error');
+  showToast(`Note: this opened WhatsApp for "${targets[0].name}" only. There are ${targets.length} total contacts in this audience — sending to everyone at once needs the WhatsApp Business API (not set up for this app).`, 'info');
 }
 async function sendPushNotification(id){
   const n = NOTIFICATIONS.find(x=>x.id===id);
@@ -3071,13 +3496,13 @@ async function sendPushNotification(id){
     });
     const data = await res.json();
     if(res.ok){
-      showToast(`🔔 Push notification bheji gayi!\n\nSuccess: ${data.successCount ?? 0}\nFail: ${data.failureCount ?? 0}${data.note ? '\n\n'+data.note : ''}`, 'success');
+      showToast(`🔔 Push notification sent!\n\nSuccess: ${data.successCount ?? 0}\nFailed: ${data.failureCount ?? 0}${data.note ? '\n\n'+data.note : ''}`, 'success');
       logActivity('Admin', `Sent push notification — "${n.title}" to ${n.audience}`, n.branch);
     } else {
-      showToast('❌ Push notification bhejne mein error: ' + (data.error || 'Unknown error'), 'error');
+      showToast('❌ Error sending push notification: ' + (data.error || 'Unknown error'), 'error');
     }
   }catch(err){
-    showToast('❌ Error sending push notification: ' + err.message + '\n\nCheck that the Netlify Function is deployed (see SETUP.md Phase 2).', 'error');
+    showToast('❌ Error sending push notification: ' + err.message + '\n\nCheck that the Netlify Function is deployed (see SETUP.md Section 9).', 'error');
   }
 }
 
@@ -3184,6 +3609,28 @@ function compressImageFile(file, maxDim = 300, quality = 0.72){
     reader.readAsDataURL(file);
   });
 }
+// For non-image files (PDFs etc.) — images get compressed via compressImageFile above
+// (which also shrinks huge phone-camera photos automatically); this one just reads
+// the raw file as-is, with a size guard since Firestore documents cap out at ~1MB.
+function readFileAsDataURL(file, maxBytes = 900000){
+  return new Promise((resolve, reject) => {
+    if(file.size > maxBytes){
+      reject(new Error(`This file is too large (${Math.round(file.size/1024)}KB). Please keep attachments under ${Math.round(maxBytes/1024)}KB — try compressing the PDF or using a smaller image.`));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+// Picks the right reader based on file type — images get compressed (photos from a
+// phone camera can be several MB), everything else (PDFs) is read directly with the
+// size guard above.
+async function readAttachment(file){
+  if(file.type.startsWith('image/')) return await compressImageFile(file, 900, 0.75);
+  return await readFileAsDataURL(file);
+}
 async function saveStudentPhoto(studentId, branch, dataUrl){
   if(!FIREBASE_ENABLED){ DEMO_PHOTOS[studentId] = dataUrl; return true; }
   try{
@@ -3222,6 +3669,7 @@ function renderMyProfile(){
       <div class="detail-row"><span class="k">Branch</span><span class="v">${CONFIG.branches[s.branch].name}</span></div>
       <div class="detail-row"><span class="k">Father's Name</span><span class="v">${s.father}</span></div>
       <div class="detail-row"><span class="k">Phone</span><span class="v">${s.phone}</span></div>
+      <div class="detail-row"><span class="k">Address</span><span class="v">${s.address || '—'}</span></div>
       <div class="detail-row"><span class="k">Date of Admission</span><span class="v">${s.admissionDate || '—'}</span></div>
     </div>
   `;
@@ -3366,13 +3814,13 @@ function renderSettings(){
       ${FIREBASE_ENABLED
         ? `<p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Turn on push notifications for this device — sending a Notice/Alert will pop up here even if the app is closed.</p>
            <button class="btn-add" style="width:100%;" onclick="requestNotificationPermission()">🔔 Enable Notifications</button>`
-        : `<p style="font-size:12.5px;color:var(--muted);">Push notifications only work in Live Mode (Firebase connected) — see SETUP.md Phase 2.</p>`}
+        : `<p style="font-size:12.5px;color:var(--muted);">Push notifications only work in Live Mode (Firebase connected) — see SETUP.md Section 9.</p>`}
     </div>
 
     <div class="section-card">
       <h3>App Info</h3>
       <div class="detail-row"><span class="k">Backend</span><span class="v">${FIREBASE_ENABLED ? 'Firebase (Live)' : 'Preview (local data)'}</span></div>
-      <div class="detail-row"><span class="k">Version</span><span class="v">Phase 1–7 build</span></div>
+      <div class="detail-row"><span class="k">Version</span><span class="v">1.0</span></div>
       <button class="btn-secondary" style="margin-top:10px;width:100%;" onclick="triggerInstallPrompt()">📲 Install App on this Device</button>
     </div>
   `;
@@ -3511,6 +3959,10 @@ function renderAdminDashboard(){
   const monthRevenue = PAYMENTS.filter(p => inBranch(p.branch)).reduce((sum, p) => sum + (p.total || 0), 0);
   const monthExpense = EXPENSES.filter(e => inBranch(e.branch)).reduce((sum, e) => sum + (e.amount || 0), 0);
 
+  const todayDay = new Date().getDate();
+  const dueSoon = students.filter(s => s.feeDue > 0 && s.dueDay && (s.dueDay - todayDay) >= 0 && (s.dueDay - todayDay) <= 3);
+  const overdue = students.filter(s => s.feeDue > 0 && s.dueDay && todayDay > s.dueDay);
+
   const hasAnyData = students.length || teachers.length || activeBatches.length || PAYMENTS.length;
 
   main.innerHTML = `
@@ -3540,6 +3992,24 @@ function renderAdminDashboard(){
       </div>
     </div>` : ''}
 
+    <div class="section-card" style="border-left:3px solid var(--gold);">
+      <h3>⏳ Due in Next 3 Days</h3>
+      ${dueSoon.length ? dueSoon.map(s => `
+        <div class="detail-row" style="cursor:pointer;" onclick="viewStudent('${s.id}')">
+          <span class="k">${s.name} <span style="color:var(--muted);font-size:11px;">(${s.id})</span></span>
+          <span class="v" style="color:var(--gold);">₹${s.feeDue} · due on ${s.dueDay}${ordinalSuffix(s.dueDay)}</span>
+        </div>`).join('') : `<div class="empty-state">No fees due in the next 3 days.</div>`}
+    </div>
+
+    <div class="section-card" style="border-left:3px solid var(--crimson);">
+      <h3>🔴 Already Overdue</h3>
+      ${overdue.length ? overdue.map(s => `
+        <div class="detail-row" style="cursor:pointer;" onclick="viewStudent('${s.id}')">
+          <span class="k">${s.name} <span style="color:var(--muted);font-size:11px;">(${s.id})</span></span>
+          <span class="v" style="color:var(--crimson);">₹${s.feeDue} · was due on ${s.dueDay}${ordinalSuffix(s.dueDay)}</span>
+        </div>`).join('') : `<div class="empty-state">No overdue fees. 🎉</div>`}
+    </div>
+
     <div class="section-card">
       <h3>Recent Activity</h3>
       ${ACTIVITY.filter(a => a.branch==='all' || inBranch(a.branch)).length ? ACTIVITY.filter(a => a.branch==='all' || inBranch(a.branch)).map(a => `
@@ -3554,8 +4024,7 @@ function renderAdminDashboard(){
 // ---------- TEACHER DASHBOARD (only their own batches/students — no institute finances) ----------
 function renderTeacherDashboard(){
   const main = document.getElementById('mainContent');
-  const me = TEACHERS.find(t => t.loginEmail && auth && auth.currentUser && t.loginEmail === auth.currentUser.email);
-  const myBatches = me ? BATCHES.filter(b => b.teacher === me.name) : BATCHES.filter(b => inBranch(b.branch));
+  const myBatches = getMyBatches();
   const myBatchNames = myBatches.map(b => b.name);
   const myStudents = STUDENTS.filter(s => myBatchNames.includes(s.batch));
   const todayISO = new Date().toISOString().slice(0,10);

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome — Manju Classes</title>
+<style>
+  :root{ --navy:#0b1f3a; --cream:#f6f3ea; --ink:#1c2430; --muted:#6b7280; --ok:#0f9d58; --gold:#c9a227; --line:#e6e2d6; }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; background:var(--cream); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px 14px;
+  }
+  .card{
+    background:#fff; max-width:420px; width:100%; border-radius:14px;
+    box-shadow:0 8px 30px rgba(11,31,58,0.12); padding:26px 24px; border:1px solid var(--line);
+  }
+  .head{ text-align:center; margin-bottom:16px; }
+  .head img{ width:56px; height:56px; object-fit:contain; margin-bottom:6px; }
+  .head .inst{ font-family:Georgia,serif; font-size:19px; font-weight:700; color:var(--navy); }
+  .head .tag{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .welcome-banner{
+    background:linear-gradient(135deg, var(--navy), #16335c); color:#fff; border-radius:10px;
+    padding:16px; text-align:center; margin:16px 0;
+  }
+  .welcome-banner .big{ font-size:18px; font-weight:700; }
+  .welcome-banner .small{ font-size:12px; color:#cbd5e1; margin-top:4px; }
+  .cred-box{
+    background:#fff8e6; border:1px dashed var(--gold); border-radius:10px; padding:14px; margin:14px 0;
+  }
+  .cred-row{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+  .cred-row .k{ color:var(--muted); }
+  .cred-row .v{ font-weight:700; color:var(--navy); }
+  .row{ display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13.5px; }
+  .row:last-child{ border-bottom:none; }
+  .row .k{ color:var(--muted); }
+  .row .v{ font-weight:600; text-align:right; }
+  .warn{ font-size:11.5px; color:var(--muted); text-align:center; margin-top:14px; line-height:1.5; }
+  .error-box{ text-align:center; color:var(--muted); font-size:14px; padding:20px; }
+</style>
+</head>
+<body>
+  <div class="card" id="welcomeCard">
+    <div class="error-box">Loading…</div>
+  </div>
+
+<script>
+function decodeWelcome(){
+  try{
+    const hash = window.location.hash.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const encoded = params.get('d');
+    if(!encoded) return null;
+    const json = decodeURIComponent(escape(atob(decodeURIComponent(encoded))));
+    return JSON.parse(json);
+  }catch(err){ console.error('Welcome decode error:', err); return null; }
+}
+function render(){
+  const card = document.getElementById('welcomeCard');
+  const w = decodeWelcome();
+  if(!w){
+    card.innerHTML = `<div class="error-box">⚠️ This link is invalid or has expired.</div>`;
+    return;
+  }
+  card.innerHTML = `
+    <div class="head">
+      <img src="logo-emblem.png" alt="${w.inst || 'Manju Classes'}">
+      <div class="inst">${w.inst || 'Manju Classes'}</div>
+      <div class="tag">${w.branchName || ''}</div>
+    </div>
+    <div class="welcome-banner">
+      <div class="big">Welcome, ${w.student || 'Student'}! 🎓</div>
+      <div class="small">Your login has been created</div>
+    </div>
+    <div class="cred-box">
+      <div class="cred-row"><span class="k">Login ID (Phone)</span><span class="v">${w.phone || '-'}</span></div>
+      <div class="cred-row"><span class="k">Password</span><span class="v">${w.password || '-'}</span></div>
+    </div>
+    <div class="row"><span class="k">Student ID</span><span class="v">${w.studentId || '-'}</span></div>
+    <div class="row"><span class="k">Class</span><span class="v">${w.cls || '-'}</span></div>
+    <div class="row"><span class="k">Batch</span><span class="v">${w.batch || '-'}</span></div>
+    <div class="row"><span class="k">Branch</span><span class="v">${w.branchName || '-'}</span></div>
+    <p class="warn">Please save this password somewhere safe — for security, it will not be shown again after this. Use the phone number above as your Login ID on the app.</p>
+  `;
+}
+render();
+</script>
+</body>
+</html>

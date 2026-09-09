@@ -153,7 +153,10 @@ service cloud.firestore {
 
     // ---------- notifications ----------
     match /notifications/{id} {
-      allow read: if isSignedIn();
+      // "all" ka matlab yahan "broadcast to everyone" hai (Super Admin ke context wale
+      // canAccessBranch se alag) — isliye ek explicit OR check chahiye taaki
+      // Branch 1 ka student "All Students" wali notification dekh sake.
+      allow read: if isSignedIn() && (resource.data.branch == 'all' || canAccessBranch(resource.data.branch));
       allow create: if isAnyAdmin() && canAccessBranch(request.resource.data.branch);
       allow update, delete: if isAnyAdmin() && canAccessBranch(resource.data.branch);
     }
@@ -161,7 +164,7 @@ service cloud.firestore {
     // ---------- activity log — readable by Super Admin only; Branch Admin sees their own branch ----------
     match /activityLog/{id} {
       allow read: if isAnyAdmin() && canAccessBranch(resource.data.branch);
-      allow create: if isSignedIn();
+      allow create: if isAnyAdmin() || isTeacher();
       allow update, delete: if false;
     }
 
@@ -169,6 +172,19 @@ service cloud.firestore {
     match /settings/{id} {
       allow read: if isSignedIn();
       allow write: if isSuperAdmin();
+    }
+
+    // ---------- phoneDirectory — public lookup so phone-number login works ----------
+    // Student/Parent login "ID" is a phone number, but Firebase Auth needs an exact
+    // email-shaped identifier internally. Before someone is signed in, the app needs
+    // to look up which account(s) exist for a phone number (a family's one phone can
+    // have several children's logins) — so this collection must be readable WITHOUT
+    // being signed in yet. It only ever stores a first name + role + the internal
+    // login handle (never passwords, fee data, or anything else sensitive), and only
+    // Admin can write to it (created automatically when a login is generated).
+    match /phoneDirectory/{phone} {
+      allow read: if true;
+      allow write: if isSignedIn() && isAnyAdmin();
     }
 
     // ---------- fcmTokens — push notification device tokens ----------
@@ -189,7 +205,7 @@ service cloud.firestore {
     }
     match /studentPhotos/{studentId} {
       allow read: if isSignedIn() && (
-        myStudentId() == studentId ||
+        (role() == 'student' && myStudentId() == studentId) ||
         ((isAnyAdmin() || isTeacher()) && canAccessBranch(resource.data.branch))
       );
       allow write: if isSignedIn() && (
